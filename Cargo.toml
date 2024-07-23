@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = [
+    "sdk/block-commitment",
+    "sdk/database",
+    "sdk/json-rpc",
+    "sdk/liveness-evm",
+    "sdk/validation-eigenlayer",
+]
