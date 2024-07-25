@@ -1,0 +1,13 @@
+[package]
+name = "radius-sequencer-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kvstore = { path = "../sdk/kvstore" }
+liveness-evm = { path = "../sdk/liveness-evm", default-features = false, optional = true }
+validation-eigenlayer = { path = "../sdk/validation-eigenlayer", default-features = false, optional = true }
+
+[features]
+liveness-evm = ["dep:liveness-evm"]
+validation-eigenlayer = ["dep:validation-eigenlayer"]

@@ -1,9 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
+    "full-node",
     "sdk/block-commitment",
-    "sdk/database",
     "sdk/json-rpc",
+    "sdk/kvstore",
     "sdk/liveness-evm",
     "sdk/validation-eigenlayer",
+    "sequencer",
 ]
+
+[workspace.dependencies]
+alloy = { version = "0.1", default-features = false }
+futures = "0.3"
+pin-project = "1.1"
+serde = { version = "1.0.197", default-features = false }
+serde_json = { version = "1.0", default-features = false }
