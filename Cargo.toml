@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.dependencies]
-alloy = { version = "0.1", default-features = false }
+alloy = { version = "0.2", default-features = false }
 futures = "0.3"
 pin-project = "1.1"
 serde = { version = "1.0.197", default-features = false }

@@ -1,0 +1,394 @@
+{
+    "abi": [
+        {
+            "type": "function",
+            "name": "BLOCK_MARGIN",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "MAX_SEQUENCER_COUNT",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "deregisterSequencer",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "getSequencerList",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address[30]",
+                    "internalType": "address[30]"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "initializeProposerSet",
+            "inputs": [],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "isRegistered",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "registerSequencer",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "event",
+            "name": "DeregisterSequencer",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "indexed": false,
+                    "internalType": "bytes32"
+                },
+                {
+                    "name": "sequencerAddress",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "InitializeProposerSet",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "indexed": false,
+                    "internalType": "bytes32"
+                },
+                {
+                    "name": "owner",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RegisterSequencer",
+            "inputs": [
+                {
+                    "name": "proposerSetId",
+                    "type": "bytes32",
+                    "indexed": false,
+                    "internalType": "bytes32"
+                },
+                {
+                    "name": "sequencerAddress",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        }
+    ],
+    "bytecode": {
+        "object": "0x6080604052348015600f57600080fd5b506106b18061001f6000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c80635024bd621161005b5780635024bd62146100f157806355cb8357146100f95780636cfdfc3e1461010157806384da0add1461012157600080fd5b80630418d1f714610082578063071c55ac1461009757806327258b22146100b2575b600080fd5b6100956100903660046105b2565b610134565b005b61009f600781565b6040519081526020015b60405180910390f35b6100e16100c03660046105b2565b60009081526020818152604080832033845260010190915290205460ff1690565b60405190151581526020016100a9565b61009f601e81565b6100956102e2565b61011461010f3660046105b2565b6103f1565b6040516100a991906105cb565b61009561012f3660046105b2565b61044b565b600081815260208181526040808320338452600181019092529091205460ff16156101a65760405162461bcd60e51b815260206004820152601c60248201527f416c726561647920726567697374657265642073657175656e6365720000000060448201526064015b60405180910390fd5b601e8160200154106101fa5760405162461bcd60e51b815260206004820152601c60248201527f4d61782073657175656e63657220636f756e7420657863656564656400000000604482015260640161019d565b336000908152600182810160205260408220805460ff191690911790555b816020015481101561028d5760006002830182601e811061023b5761023b610606565b01546001600160a01b03160361028557338260020182601e811061026157610261610606565b0180546001600160a01b0319166001600160a01b039290921691909117905561028d565b600101610218565b506020810180549060006102a083610632565b9091555050604080518381523360208201527f8fc658286c9b4f75762749c53540f49fbd75c86abf3166de09bd20b5f691402d91015b60405180910390a15050565b6000336102f060014361064b565b60405160609290921b6bffffffffffffffffffffffff1916602083015240603482015260540160408051601f19818403018152918152815160209283012060008181529283905291208054919250906001600160a01b0316156103955760405162461bcd60e51b815260206004820181905260248201527f416c726561647920696e697469616c697a65642070726f706f73657220736574604482015260640161019d565b80546001600160a01b031916339081178255600060208301556040517fbfa525097147201029486e36a599cd1b9a18c126616f3d3d718f56b46566bef4916102d6918591909182526001600160a01b0316602082015260400190565b6103f9610593565b6000828152602081905260409081902081516103c08101909252600201601e8282826020028201915b81546001600160a01b031681526001909101906020018083116104225750505050509050919050565b600081815260208181526040808320338452600181019092529091205460ff166104b75760405162461bcd60e51b815260206004820152601860248201527f4e6f7420726567697374657265642073657175656e6365720000000000000000604482015260640161019d565b3360009081526001820160205260408120805460ff191690555b816020015481101561054657336002830182601e81106104f3576104f3610606565b01546001600160a01b03160361053e5760008260020182601e811061051a5761051a610606565b0180546001600160a01b0319166001600160a01b0392909216919091179055610546565b6001016104d1565b5060208101805490600061055983610664565b9091555050604080518381523360208201527fdbd3de35381856383ad03d983de94a1f5ce58099d306bd4fd6e0bee172ab5b7891016102d6565b604051806103c00160405280601e906020820280368337509192915050565b6000602082840312156105c457600080fd5b5035919050565b6103c08101818360005b601e8110156105fd5781516001600160a01b03168352602092830192909101906001016105d5565b50505092915050565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052601160045260246000fd5b6000600182016106445761064461061c565b5060010190565b8181038181111561065e5761065e61061c565b92915050565b6000816106735761067361061c565b50600019019056fea264697066735822122006e8f02e0ac74c749dfab6ba9daffbb43be971e1331c418d0e94222122b1428864736f6c634300081a0033",
+        "sourceMap": "142:3026:101:-:0;;;;;;;;;;;;;;;;;;;",
+        "linkReferences": {}
+    },
+    "deployedBytecode": {
+        "object": "0x608060405234801561001057600080fd5b506004361061007d5760003560e01c80635024bd621161005b5780635024bd62146100f157806355cb8357146100f95780636cfdfc3e1461010157806384da0add1461012157600080fd5b80630418d1f714610082578063071c55ac1461009757806327258b22146100b2575b600080fd5b6100956100903660046105b2565b610134565b005b61009f600781565b6040519081526020015b60405180910390f35b6100e16100c03660046105b2565b60009081526020818152604080832033845260010190915290205460ff1690565b60405190151581526020016100a9565b61009f601e81565b6100956102e2565b61011461010f3660046105b2565b6103f1565b6040516100a991906105cb565b61009561012f3660046105b2565b61044b565b600081815260208181526040808320338452600181019092529091205460ff16156101a65760405162461bcd60e51b815260206004820152601c60248201527f416c726561647920726567697374657265642073657175656e6365720000000060448201526064015b60405180910390fd5b601e8160200154106101fa5760405162461bcd60e51b815260206004820152601c60248201527f4d61782073657175656e63657220636f756e7420657863656564656400000000604482015260640161019d565b336000908152600182810160205260408220805460ff191690911790555b816020015481101561028d5760006002830182601e811061023b5761023b610606565b01546001600160a01b03160361028557338260020182601e811061026157610261610606565b0180546001600160a01b0319166001600160a01b039290921691909117905561028d565b600101610218565b506020810180549060006102a083610632565b9091555050604080518381523360208201527f8fc658286c9b4f75762749c53540f49fbd75c86abf3166de09bd20b5f691402d91015b60405180910390a15050565b6000336102f060014361064b565b60405160609290921b6bffffffffffffffffffffffff1916602083015240603482015260540160408051601f19818403018152918152815160209283012060008181529283905291208054919250906001600160a01b0316156103955760405162461bcd60e51b815260206004820181905260248201527f416c726561647920696e697469616c697a65642070726f706f73657220736574604482015260640161019d565b80546001600160a01b031916339081178255600060208301556040517fbfa525097147201029486e36a599cd1b9a18c126616f3d3d718f56b46566bef4916102d6918591909182526001600160a01b0316602082015260400190565b6103f9610593565b6000828152602081905260409081902081516103c08101909252600201601e8282826020028201915b81546001600160a01b031681526001909101906020018083116104225750505050509050919050565b600081815260208181526040808320338452600181019092529091205460ff166104b75760405162461bcd60e51b815260206004820152601860248201527f4e6f7420726567697374657265642073657175656e6365720000000000000000604482015260640161019d565b3360009081526001820160205260408120805460ff191690555b816020015481101561054657336002830182601e81106104f3576104f3610606565b01546001600160a01b03160361053e5760008260020182601e811061051a5761051a610606565b0180546001600160a01b0319166001600160a01b0392909216919091179055610546565b6001016104d1565b5060208101805490600061055983610664565b9091555050604080518381523360208201527fdbd3de35381856383ad03d983de94a1f5ce58099d306bd4fd6e0bee172ab5b7891016102d6565b604051806103c00160405280601e906020820280368337509192915050565b6000602082840312156105c457600080fd5b5035919050565b6103c08101818360005b601e8110156105fd5781516001600160a01b03168352602092830192909101906001016105d5565b50505092915050565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052601160045260246000fd5b6000600182016106445761064461061c565b5060010190565b8181038181111561065e5761065e61061c565b92915050565b6000816106735761067361061c565b50600019019056fea264697066735822122006e8f02e0ac74c749dfab6ba9daffbb43be971e1331c418d0e94222122b1428864736f6c634300081a0033",
+        "sourceMap": "142:3026:101:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1302:804;;;;;;:::i;:::-;;:::i;:::-;;275:40;;314:1;275:40;;;;;345:25:103;;;333:2;318:18;275:40:101;;;;;;;;3004:162;;;;;;:::i;:::-;3069:4;3098:27;;;;;;;;;;;3148:10;3098:61;;:49;;:61;;;;;;;;;3004:162;;;;546:14:103;;539:22;521:41;;509:2;494:18;3004:162:101;381:187:103;221:48:101;;267:2;221:48;;812:484;;;:::i;2816:182::-;;;;;;:::i;:::-;;:::i;:::-;;;;;;;:::i;2112:698::-;;;;;;:::i;:::-;;:::i;1302:804::-;1369:31;1403:27;;;;;;;;;;;1484:10;1450:45;;:33;;;:45;;;;;;;;;1449:46;1441:87;;;;-1:-1:-1;;;1441:87:101;;1280:2:103;1441:87:101;;;1262:21:103;1319:2;1299:18;;;1292:30;1358;1338:18;;;1331:58;1406:18;;1441:87:101;;;;;;;;;267:2;1546:11;:33;;;:55;1538:96;;;;-1:-1:-1;;;1538:96:101;;1637:2:103;1538:96:101;;;1619:21:103;1676:2;1656:18;;;1649:30;1715;1695:18;;;1688:58;1763:18;;1538:96:101;1435:352:103;1538:96:101;1679:10;1645:45;;;;1693:4;1645:33;;;:45;;;;;:52;;-1:-1:-1;;1645:52:101;;;;;;1751:243;1775:11;:33;;;1771:1;:37;1751:243;;;1878:1;1833:30;;;1864:1;1833:33;;;;;;;:::i;:::-;;;-1:-1:-1;;;;;1833:33:101;:47;1829:155;;1936:10;1900:11;:30;;1931:1;1900:33;;;;;;;:::i;:::-;;:46;;-1:-1:-1;;;;;;1900:46:101;-1:-1:-1;;;;;1900:46:101;;;;;;;;;;1964:5;;1829:155;1810:3;;1751:243;;;-1:-1:-1;2004:33:101;;;:35;;;:33;:35;;;:::i;:::-;;;;-1:-1:-1;;2055:44:101;;;2370:25:103;;;2088:10:101;2426:2:103;2411:18;;2404:60;2055:44:101;;2343:18:103;2055:44:101;;;;;;;;1359:747;1302:804;:::o;812:484::-;862:21;913:10;935:16;950:1;935:12;:16;:::i;:::-;896:57;;2785:2:103;2781:15;;;;-1:-1:-1;;2777:53:103;896:57:101;;;2765:66:103;925:27:101;2847:12:103;;;2840:28;2884:12;;896:57:101;;;-1:-1:-1;;896:57:101;;;;;;;;;886:68;;896:57;886:68;;;;973:31;1007:27;;;;;;;;;1061:17;;886:68;;-1:-1:-1;1007:27:101;-1:-1:-1;;;;;1061:17:101;:31;1053:76;;;;-1:-1:-1;;;1053:76:101;;3109:2:103;1053:76:101;;;3091:21:103;;;3128:18;;;3121:30;3187:34;3167:18;;;3160:62;3239:18;;1053:76:101;2907:356:103;1053:76:101;1140:30;;-1:-1:-1;;;;;;1140:30:101;1160:10;1140:30;;;;;:17;1180:33;;;:37;1241:48;;;;;;1263:13;;1160:10;2370:25:103;;;-1:-1:-1;;;;;2431:32:103;2426:2;2411:18;;2404:60;2358:2;2343:18;;2196:274;2816:182:101;2885:35;;:::i;:::-;2945:12;:27;;;;;;;;;;;;2938:53;;;;;;;;2945:46;;2938:53;;2945:46;2938:53;;;;;;;;;-1:-1:-1;;;;;2938:53:101;;;;;;;;;;;;;;;;;;;;;;2816:182;;;:::o;2112:698::-;2181:31;2215:27;;;;;;;;;;;2295:10;2261:45;;:33;;;:45;;;;;;;;;2253:82;;;;-1:-1:-1;;;2253:82:101;;3470:2:103;2253:82:101;;;3452:21:103;3509:2;3489:18;;;3482:30;3548:26;3528:18;;;3521:54;3592:18;;2253:82:101;3268:348:103;2253:82:101;2380:10;2394:5;2346:45;;;:33;;;:45;;;;;:53;;-1:-1:-1;;2346:53:101;;;2453:243;2477:11;:33;;;2473:1;:37;2453:243;;;2572:10;2535:30;;;2566:1;2535:33;;;;;;;:::i;:::-;;;-1:-1:-1;;;;;2535:33:101;:47;2531:155;;2646:1;2602:11;:30;;2633:1;2602:33;;;;;;;:::i;:::-;;:46;;-1:-1:-1;;;;;;2602:46:101;-1:-1:-1;;;;;2602:46:101;;;;;;;;;;2666:5;;2531:155;2512:3;;2453:243;;;-1:-1:-1;2706:33:101;;;:35;;;:33;:35;;;:::i;:::-;;;;-1:-1:-1;;2757:46:101;;;2370:25:103;;;2792:10:101;2426:2:103;2411:18;;2404:60;2757:46:101;;2343:18:103;2757:46:101;2196:274:103;-1:-1:-1;;;;;;;;;;;;;;;;;;;;;;;;:::o;14:180:103:-;73:6;126:2;114:9;105:7;101:23;97:32;94:52;;;142:1;139;132:12;94:52;-1:-1:-1;165:23:103;;14:180;-1:-1:-1;14:180:103:o;573:500::-;755:3;740:19;;744:9;836:6;713:4;870:197;884:4;881:1;878:11;870:197;;;947:13;;-1:-1:-1;;;;;943:39:103;931:52;;1012:4;1003:14;;;;1040:17;;;;979:1;897:9;870:197;;;874:3;;;573:500;;;;:::o;1792:127::-;1853:10;1848:3;1844:20;1841:1;1834:31;1884:4;1881:1;1874:15;1908:4;1905:1;1898:15;1924:127;1985:10;1980:3;1976:20;1973:1;1966:31;2016:4;2013:1;2006:15;2040:4;2037:1;2030:15;2056:135;2095:3;2116:17;;;2113:43;;2136:18;;:::i;:::-;-1:-1:-1;2183:1:103;2172:13;;2056:135::o;2475:128::-;2542:9;;;2563:11;;;2560:37;;;2577:18;;:::i;:::-;2475:128;;;;:::o;3621:136::-;3660:3;3688:5;3678:39;;3697:18;;:::i;:::-;-1:-1:-1;;;3733:18:103;;3621:136::o",
+        "linkReferences": {}
+    },
+    "methodIdentifiers": {
+        "BLOCK_MARGIN()": "071c55ac",
+        "MAX_SEQUENCER_COUNT()": "5024bd62",
+        "deregisterSequencer(bytes32)": "84da0add",
+        "getSequencerList(bytes32)": "6cfdfc3e",
+        "initializeProposerSet()": "55cb8357",
+        "isRegistered(bytes32)": "27258b22",
+        "registerSequencer(bytes32)": "0418d1f7"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sequencerAddress\",\"type\":\"address\"}],\"name\":\"DeregisterSequencer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"InitializeProposerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sequencerAddress\",\"type\":\"address\"}],\"name\":\"RegisterSequencer\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"BLOCK_MARGIN\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MAX_SEQUENCER_COUNT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"}],\"name\":\"deregisterSequencer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"}],\"name\":\"getSequencerList\",\"outputs\":[{\"internalType\":\"address[30]\",\"name\":\"\",\"type\":\"address[30]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initializeProposerSet\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"}],\"name\":\"isRegistered\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"proposerSetId\",\"type\":\"bytes32\"}],\"name\":\"registerSequencer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/Ssal.sol\":\"Ssal\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":@eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/\",\":@eigenlayer/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/\",\":@openzeppelin-upgrades-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":@openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/\",\":ds-test/=lib/eigenlayer-middleware/lib/ds-test/src/\",\":eigenlayer-contracts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/\",\":eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":erc4626-tests/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":openzeppelin-contracts-upgradeable/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/contracts/\"]},\"sources\":{\"src/Ssal.sol\":{\"keccak256\":\"0xcaa1683d470bdbabb4302ce6745997f67907899321ccf2f2ae632305b9fda056\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://63fdd541c5c343f9c3959e592d38b1cf86e667894d2e7b3a4f44daa065701fe1\",\"dweb:/ipfs/QmauSJG7WanjRh15VxvC9QB1zLg831zJ7S4NE8b8GD7zi2\"]}},\"version\":1}",
+    "metadata": {
+        "compiler": {
+            "version": "0.8.26+commit.8a97fa7a"
+        },
+        "language": "Solidity",
+        "output": {
+            "abi": [
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "sequencerAddress",
+                            "type": "address",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "DeregisterSequencer",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "owner",
+                            "type": "address",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "InitializeProposerSet",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "sequencerAddress",
+                            "type": "address",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "RegisterSequencer",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "BLOCK_MARGIN",
+                    "outputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "",
+                            "type": "uint256"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "MAX_SEQUENCER_COUNT",
+                    "outputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "",
+                            "type": "uint256"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "deregisterSequencer"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getSequencerList",
+                    "outputs": [
+                        {
+                            "internalType": "address[30]",
+                            "name": "",
+                            "type": "address[30]"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "initializeProposerSet"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "isRegistered",
+                    "outputs": [
+                        {
+                            "internalType": "bool",
+                            "name": "",
+                            "type": "bool"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes32",
+                            "name": "proposerSetId",
+                            "type": "bytes32"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "registerSequencer"
+                }
+            ],
+            "devdoc": {
+                "kind": "dev",
+                "methods": {},
+                "version": 1
+            },
+            "userdoc": {
+                "kind": "user",
+                "methods": {},
+                "version": 1
+            }
+        },
+        "settings": {
+            "remappings": [
+                "@eigenlayer-middleware/=lib/eigenlayer-middleware/",
+                "@eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/",
+                "@eigenlayer/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/",
+                "@openzeppelin-upgrades-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
+                "@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable/",
+                "@openzeppelin-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
+                "@openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/",
+                "ds-test/=lib/eigenlayer-middleware/lib/ds-test/src/",
+                "eigenlayer-contracts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/",
+                "eigenlayer-middleware/=lib/eigenlayer-middleware/",
+                "erc4626-tests/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/lib/erc4626-tests/",
+                "forge-std/=lib/forge-std/src/",
+                "openzeppelin-contracts-upgradeable-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
+                "openzeppelin-contracts-upgradeable/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/",
+                "openzeppelin-contracts-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
+                "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+                "openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/contracts/"
+            ],
+            "optimizer": {
+                "enabled": true,
+                "runs": 200
+            },
+            "metadata": {
+                "bytecodeHash": "ipfs"
+            },
+            "compilationTarget": {
+                "src/Ssal.sol": "Ssal"
+            },
+            "evmVersion": "paris",
+            "libraries": {}
+        },
+        "sources": {
+            "src/Ssal.sol": {
+                "keccak256": "0xcaa1683d470bdbabb4302ce6745997f67907899321ccf2f2ae632305b9fda056",
+                "urls": [
+                    "bzz-raw://63fdd541c5c343f9c3959e592d38b1cf86e667894d2e7b3a4f44daa065701fe1",
+                    "dweb:/ipfs/QmauSJG7WanjRh15VxvC9QB1zLg831zJ7S4NE8b8GD7zi2"
+                ],
+                "license": "UNLICENSED"
+            }
+        },
+        "version": 1
+    },
+    "id": 101
+}
