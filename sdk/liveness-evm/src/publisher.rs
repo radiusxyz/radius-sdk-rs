@@ -1,12 +1,14 @@
-use std::str::FromStr;
+use std::{marker::PhantomData, str::FromStr};
 
 use alloy::{
+    contract,
     network::{Ethereum, EthereumWallet},
     providers::{
         fillers::{ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller},
-        Identity, ProviderBuilder, RootProvider, WalletProvider,
+        Identity, PendingTransactionBuilder, ProviderBuilder, RootProvider, WalletProvider,
     },
     signers::local::LocalSigner,
+    sol_types::SolEvent,
     transports::http::{reqwest::Url, Client, Http},
 };
 use Ssal::{DeregisterSequencer, InitializeProposerSet, RegisterSequencer};
@@ -35,6 +37,20 @@ type SsalContract = Ssal::SsalInstance<
         Ethereum,
     >,
 >;
+
+// type ContractCall<'a, T> = CallBuilder<
+//     Http<Client>,
+//     &'a FillProvider<
+//         JoinFill<
+//             JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>,
+// ChainIdFiller>,             WalletFiller<EthereumWallet>,
+//         >,
+//         RootProvider<Http<Client>>,
+//         Http<Client>,
+//         Ethereum,
+//     >,
+//     PhantomData<T>,
+// >;
 
 pub struct Publisher {
     provider: EthereumHttpProvider,
@@ -76,12 +92,17 @@ impl Publisher {
         self.provider.default_signer_address()
     }
 
-    pub async fn initialize_proposer_set(&self) -> Result<InitializeProposerSet, PublisherError> {
-        let transaction_receipt = self
-            .ssal_contract
-            .initializeProposerSet()
-            .send()
-            .await
+    async fn contract_call<'a, T>(
+        &'a self,
+        pending_transaction: Result<
+            PendingTransactionBuilder<'a, Http<Client>, Ethereum>,
+            contract::Error,
+        >,
+    ) -> Result<T, PublisherError>
+    where
+        T: SolEvent,
+    {
+        let transaction_receipt = pending_transaction
             .map_err(PublisherError::SendTransaction)?
             .get_receipt()
             .await
@@ -92,10 +113,39 @@ impl Publisher {
             .logs()
             .first()
             .ok_or(PublisherError::EmptyLogs)?
-            .log_decode::<Ssal::InitializeProposerSet>()
+            .log_decode::<T>()
             .map_err(PublisherError::DecodeLogData)?;
 
         Ok(log.inner.data)
+    }
+
+    pub async fn initialize_proposer_set(&self) -> Result<InitializeProposerSet, PublisherError> {
+        let contract_call = self.ssal_contract.initializeProposerSet();
+        let pending_transaction = contract_call.send().await;
+
+        let event: InitializeProposerSet = self.contract_call(pending_transaction).await.unwrap();
+
+        Ok(event)
+
+        // let transaction_receipt = self
+        //     .ssal_contract
+        //     .initializeProposerSet()
+        //     .send()
+        //     .await
+        //     .map_err(PublisherError::SendTransaction)?
+        //     .get_receipt()
+        //     .await
+        //     .map_err(PublisherError::GetReceipt)?;
+
+        // let log = transaction_receipt
+        //     .as_ref()
+        //     .logs()
+        //     .first()
+        //     .ok_or(PublisherError::EmptyLogs)?
+        //     .log_decode::<Ssal::InitializeProposerSet>()
+        //     .map_err(PublisherError::DecodeLogData)?;
+
+        // Ok(log.inner.data)
     }
 
     pub async fn register_sequencer(
@@ -202,3 +252,5 @@ impl std::fmt::Display for PublisherError {
 }
 
 impl std::error::Error for PublisherError {}
+
+enum Operation {}
