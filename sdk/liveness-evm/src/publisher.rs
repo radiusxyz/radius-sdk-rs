@@ -170,7 +170,7 @@ impl Publisher {
         let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
             .map_err(PublisherError::ParseProposerSetId)?;
 
-        let sequencer_list: [Address; 30] = self
+        let sequencer_list = self
             .ssal_contract
             .getSequencerList(proposer_set_id)
             .call()
