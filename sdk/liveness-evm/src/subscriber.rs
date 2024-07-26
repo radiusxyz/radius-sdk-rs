@@ -7,15 +7,12 @@ use std::{
 
 use alloy::{
     eips::BlockNumberOrTag,
-    providers::{Provider, ProviderBuilder, RootProvider, WsConnect},
+    providers::{Provider, ProviderBuilder, WsConnect},
     rpc::types::Filter,
-    sol_types::{self, SolEvent},
+    sol_types::SolEvent,
 };
-use futures::{stream::select_all, Stream, StreamExt, TryStreamExt};
+use futures::{stream::select_all, Stream, StreamExt};
 use pin_project::pin_project;
-use Ssal::{
-    DeregisterSequencer, InitializeProposerSet, RegisterSequencer, SsalEvents, SsalInstance,
-};
 
 use crate::types::*;
 
@@ -57,7 +54,7 @@ impl Subscriber {
         let block_stream: EventStream = provider
             .subscribe_blocks()
             .await
-            .unwrap()
+            .map_err(SubscriberError::SubscribeToBlock)?
             .into_stream()
             .boxed()
             .into();
@@ -69,7 +66,7 @@ impl Subscriber {
         let ssal_event_stream: EventStream = provider
             .subscribe_logs(&filter)
             .await
-            .unwrap()
+            .map_err(SubscriberError::SubscribeToLog)?
             .into_stream()
             .boxed()
             .into();
@@ -78,15 +75,6 @@ impl Subscriber {
         while let Some(event) = event_stream.next().await {
             callback(event, context.clone()).await;
         }
-
-        // while let Some(log) = event_stream.next().await {
-        //     match log.topic0() {
-        //         Some(&Ssal::InitializeProposerSet::SIGNATURE_HASH) => {}
-        //         Some(&Ssal::RegisterSequencer::SIGNATURE_HASH) => {}
-        //         Some(&Ssal::DeregisterSequencer::SIGNATURE_HASH) => {}
-        //         _ => {}
-        //     }
-        // }
 
         Err(SubscriberError::EventStreamDisconnected)
     }
@@ -133,12 +121,36 @@ impl Stream for EventStream {
 
 impl EventStream {
     fn decode_log(log: Log) -> Option<Events> {
-        Events::SsalEvents(match log.topic0() {
-            Some(&Ssal::InitializeProposerSet::SIGNATURE_HASH) => {}
-            Some(&Ssal::RegisterSequencer::SIGNATURE_HASH) => {}
-            Some(&Ssal::DeregisterSequencer::SIGNATURE_HASH) => {}
-            _ => {}
-        })
+        match log.topic0() {
+            Some(&Ssal::InitializeProposerSet::SIGNATURE_HASH) => {
+                match log.log_decode::<Ssal::InitializeProposerSet>().ok() {
+                    Some(log) => {
+                        let event = log.inner.data;
+                        Some(Ssal::SsalEvents::InitializeProposerSet(event).into())
+                    }
+                    None => None,
+                }
+            }
+            Some(&Ssal::RegisterSequencer::SIGNATURE_HASH) => {
+                match log.log_decode::<Ssal::RegisterSequencer>().ok() {
+                    Some(log) => {
+                        let event = log.inner.data;
+                        Some(Ssal::SsalEvents::RegisterSequencer(event).into())
+                    }
+                    None => None,
+                }
+            }
+            Some(&Ssal::DeregisterSequencer::SIGNATURE_HASH) => {
+                match log.log_decode::<Ssal::DeregisterSequencer>().ok() {
+                    Some(log) => {
+                        let event = log.inner.data;
+                        Some(Ssal::SsalEvents::DeregisterSequencer(event).into())
+                    }
+                    None => None,
+                }
+            }
+            _ => None,
+        }
     }
 }
 
@@ -147,16 +159,8 @@ pub enum SubscriberError {
     ParseContractAddress(alloy::hex::FromHexError),
     WebsocketProvider(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     NewBlockEventStream(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    SubscribeToEvent,
-    InitializeProposerSetEventStream(
-        alloy::transports::RpcError<alloy::transports::TransportErrorKind>,
-    ),
-    RegisterSequencerEventStream(
-        alloy::transports::RpcError<alloy::transports::TransportErrorKind>,
-    ),
-    DeregisterSequencerEventStream(
-        alloy::transports::RpcError<alloy::transports::TransportErrorKind>,
-    ),
+    SubscribeToBlock(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    SubscribeToLog(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     EventStreamDisconnected,
 }
 

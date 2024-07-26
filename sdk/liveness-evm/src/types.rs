@@ -14,3 +14,9 @@ pub enum Events {
     Block(Block),
     SsalEvents(Ssal::SsalEvents),
 }
+
+impl From<Ssal::SsalEvents> for Events {
+    fn from(value: Ssal::SsalEvents) -> Self {
+        Self::SsalEvents(value)
+    }
+}
