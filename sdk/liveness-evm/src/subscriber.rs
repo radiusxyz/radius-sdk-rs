@@ -22,7 +22,7 @@ pub struct Subscriber {
 }
 
 impl Subscriber {
-    pub async fn new(
+    pub fn new(
         ethereum_websocket_url: impl AsRef<str>,
         contract_address: impl AsRef<str>,
     ) -> Result<Self, SubscriberError> {
@@ -66,7 +66,7 @@ impl Subscriber {
         let ssal_event_stream: EventStream = provider
             .subscribe_logs(&filter)
             .await
-            .map_err(SubscriberError::SubscribeToLog)?
+            .map_err(SubscriberError::SubscribeToLogs)?
             .into_stream()
             .boxed()
             .into();
@@ -125,27 +125,20 @@ impl EventStream {
             Some(&Ssal::InitializeProposerSet::SIGNATURE_HASH) => {
                 match log.log_decode::<Ssal::InitializeProposerSet>().ok() {
                     Some(log) => {
-                        let event = log.inner.data;
-                        Some(Ssal::SsalEvents::InitializeProposerSet(event).into())
+                        Some(Ssal::SsalEvents::InitializeProposerSet(log.inner.data).into())
                     }
                     None => None,
                 }
             }
             Some(&Ssal::RegisterSequencer::SIGNATURE_HASH) => {
                 match log.log_decode::<Ssal::RegisterSequencer>().ok() {
-                    Some(log) => {
-                        let event = log.inner.data;
-                        Some(Ssal::SsalEvents::RegisterSequencer(event).into())
-                    }
+                    Some(log) => Some(Ssal::SsalEvents::RegisterSequencer(log.inner.data).into()),
                     None => None,
                 }
             }
             Some(&Ssal::DeregisterSequencer::SIGNATURE_HASH) => {
                 match log.log_decode::<Ssal::DeregisterSequencer>().ok() {
-                    Some(log) => {
-                        let event = log.inner.data;
-                        Some(Ssal::SsalEvents::DeregisterSequencer(event).into())
-                    }
+                    Some(log) => Some(Ssal::SsalEvents::DeregisterSequencer(log.inner.data).into()),
                     None => None,
                 }
             }
@@ -160,7 +153,7 @@ pub enum SubscriberError {
     WebsocketProvider(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     NewBlockEventStream(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     SubscribeToBlock(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    SubscribeToLog(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    SubscribeToLogs(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     EventStreamDisconnected,
 }
 

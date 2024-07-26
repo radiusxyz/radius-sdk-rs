@@ -1,17 +1,17 @@
-use std::{marker::PhantomData, str::FromStr};
+use std::str::FromStr;
 
 use alloy::{
     contract,
     network::{Ethereum, EthereumWallet},
     providers::{
         fillers::{ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller},
-        Identity, PendingTransactionBuilder, ProviderBuilder, RootProvider, WalletProvider,
+        Identity, PendingTransactionBuilder, Provider, ProviderBuilder, RootProvider,
+        WalletProvider,
     },
     signers::local::LocalSigner,
     sol_types::SolEvent,
     transports::http::{reqwest::Url, Client, Http},
 };
-use Ssal::{DeregisterSequencer, InitializeProposerSet, RegisterSequencer};
 
 use crate::types::*;
 
@@ -37,20 +37,6 @@ type SsalContract = Ssal::SsalInstance<
         Ethereum,
     >,
 >;
-
-// type ContractCall<'a, T> = CallBuilder<
-//     Http<Client>,
-//     &'a FillProvider<
-//         JoinFill<
-//             JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>,
-// ChainIdFiller>,             WalletFiller<EthereumWallet>,
-//         >,
-//         RootProvider<Http<Client>>,
-//         Http<Client>,
-//         Ethereum,
-//     >,
-//     PhantomData<T>,
-// >;
 
 pub struct Publisher {
     provider: EthereumHttpProvider,
@@ -92,116 +78,88 @@ impl Publisher {
         self.provider.default_signer_address()
     }
 
-    async fn contract_call<'a, T>(
+    pub async fn get_block_number(&self) -> Result<u64, PublisherError> {
+        let block_number = self
+            .provider
+            .get_block_number()
+            .await
+            .map_err(PublisherError::GetBlockNumber)?;
+
+        Ok(block_number)
+    }
+
+    async fn extract_event_from_pending_transaction<'a, T>(
         &'a self,
         pending_transaction: Result<
             PendingTransactionBuilder<'a, Http<Client>, Ethereum>,
             contract::Error,
         >,
-    ) -> Result<T, PublisherError>
+    ) -> Result<T, TransactionError>
     where
         T: SolEvent,
     {
         let transaction_receipt = pending_transaction
-            .map_err(PublisherError::SendTransaction)?
+            .map_err(TransactionError::SendTransaction)?
             .get_receipt()
             .await
-            .map_err(PublisherError::GetReceipt)?;
+            .map_err(TransactionError::GetReceipt)?;
 
         let log = transaction_receipt
             .as_ref()
             .logs()
             .first()
-            .ok_or(PublisherError::EmptyLogs)?
+            .ok_or(TransactionError::EmptyLogs)?
             .log_decode::<T>()
-            .map_err(PublisherError::DecodeLogData)?;
+            .map_err(TransactionError::DecodeLogData)?;
 
         Ok(log.inner.data)
     }
 
-    pub async fn initialize_proposer_set(&self) -> Result<InitializeProposerSet, PublisherError> {
+    pub async fn initialize_proposer_set(
+        &self,
+    ) -> Result<Ssal::InitializeProposerSet, PublisherError> {
         let contract_call = self.ssal_contract.initializeProposerSet();
         let pending_transaction = contract_call.send().await;
-
-        let event: InitializeProposerSet = self.contract_call(pending_transaction).await.unwrap();
+        let event: Ssal::InitializeProposerSet = self
+            .extract_event_from_pending_transaction(pending_transaction)
+            .await
+            .map_err(PublisherError::InitializeProposerSet)?;
 
         Ok(event)
-
-        // let transaction_receipt = self
-        //     .ssal_contract
-        //     .initializeProposerSet()
-        //     .send()
-        //     .await
-        //     .map_err(PublisherError::SendTransaction)?
-        //     .get_receipt()
-        //     .await
-        //     .map_err(PublisherError::GetReceipt)?;
-
-        // let log = transaction_receipt
-        //     .as_ref()
-        //     .logs()
-        //     .first()
-        //     .ok_or(PublisherError::EmptyLogs)?
-        //     .log_decode::<Ssal::InitializeProposerSet>()
-        //     .map_err(PublisherError::DecodeLogData)?;
-
-        // Ok(log.inner.data)
     }
 
     pub async fn register_sequencer(
         &self,
         proposer_set_id: impl AsRef<str>,
-    ) -> Result<RegisterSequencer, PublisherError> {
+    ) -> Result<Ssal::RegisterSequencer, PublisherError> {
         let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
             .map_err(PublisherError::ParseProposerSetId)?;
 
-        let transaction_receipt = self
-            .ssal_contract
-            .registerSequencer(proposer_set_id)
-            .send()
+        let contract_call = self.ssal_contract.registerSequencer(proposer_set_id);
+        let pending_transaction = contract_call.send().await;
+        let event: Ssal::RegisterSequencer = self
+            .extract_event_from_pending_transaction(pending_transaction)
             .await
-            .map_err(PublisherError::SendTransaction)?
-            .get_receipt()
-            .await
-            .map_err(PublisherError::GetReceipt)?;
+            .map_err(PublisherError::RegisterSequencer)?;
 
-        let log = transaction_receipt
-            .as_ref()
-            .logs()
-            .first()
-            .ok_or(PublisherError::EmptyLogs)?
-            .log_decode::<Ssal::RegisterSequencer>()
-            .map_err(PublisherError::DecodeLogData)?;
-
-        Ok(log.inner.data)
+        Ok(event)
     }
 
     pub async fn deregister_sequencer(
         &self,
         proposer_set_id: impl AsRef<str>,
-    ) -> Result<DeregisterSequencer, PublisherError> {
+    ) -> Result<Ssal::DeregisterSequencer, PublisherError> {
         let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
             .map_err(PublisherError::ParseProposerSetId)?;
 
-        let transaction_receipt = self
-            .ssal_contract
-            .deregisterSequencer(proposer_set_id)
-            .send()
+        let contract_call = self.ssal_contract.deregisterSequencer(proposer_set_id);
+        let pending_transaction = contract_call.send().await;
+        let event: Ssal::DeregisterSequencer = self
+            .extract_event_from_pending_transaction(pending_transaction)
             .await
-            .map_err(PublisherError::SendTransaction)?
-            .get_receipt()
-            .await
-            .map_err(PublisherError::GetReceipt)?;
+            .map_err(PublisherError::DeregisterSequencer)?;
 
-        let log = transaction_receipt
-            .as_ref()
-            .logs()
-            .first()
-            .ok_or(PublisherError::EmptyLogs)?
-            .log_decode::<Ssal::DeregisterSequencer>()
-            .map_err(PublisherError::DecodeLogData)?;
-
-        Ok(log.inner.data)
+        Ok(event)
     }
 
     pub async fn get_sequencer_list(
@@ -218,7 +176,7 @@ impl Publisher {
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::EthCall)?
+            .map_err(PublisherError::GetSequencerList)?
             ._0;
 
         // Filter sequencer address whose value is zero (== [0; 20])
@@ -229,7 +187,41 @@ impl Publisher {
 
         Ok(filtered_list)
     }
+
+    pub async fn is_registered(
+        &self,
+        proposer_set_id: impl AsRef<str>,
+    ) -> Result<bool, PublisherError> {
+        let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
+            .map_err(PublisherError::ParseProposerSetId)?;
+
+        let is_registered = self
+            .ssal_contract
+            .isRegistered(proposer_set_id)
+            .call()
+            .await
+            .map_err(PublisherError::IsRegistered)?
+            ._0;
+
+        Ok(is_registered)
+    }
 }
+
+#[derive(Debug)]
+pub enum TransactionError {
+    SendTransaction(alloy::contract::Error),
+    GetReceipt(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    EmptyLogs,
+    DecodeLogData(alloy::sol_types::Error),
+}
+
+impl std::fmt::Display for TransactionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for TransactionError {}
 
 #[derive(Debug)]
 pub enum PublisherError {
@@ -237,12 +229,12 @@ pub enum PublisherError {
     ParseSigningKey(alloy::signers::local::LocalSignerError),
     ParseContractAddress(alloy::hex::FromHexError),
     ParseProposerSetId(alloy::hex::FromHexError),
-    SendTransaction(alloy::contract::Error),
-    GetReceipt(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    EmptyLogs,
-    DecodeLogData(alloy::sol_types::Error),
-    EthCall(alloy::contract::Error),
-    WebsocketProvider(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    GetBlockNumber(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    InitializeProposerSet(TransactionError),
+    RegisterSequencer(TransactionError),
+    DeregisterSequencer(TransactionError),
+    GetSequencerList(alloy::contract::Error),
+    IsRegistered(alloy::contract::Error),
 }
 
 impl std::fmt::Display for PublisherError {
@@ -252,5 +244,3 @@ impl std::fmt::Display for PublisherError {
 }
 
 impl std::error::Error for PublisherError {}
-
-enum Operation {}
