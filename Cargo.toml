@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "full-node",
     "sdk/block-commitment",
+    "sdk/context",
     "sdk/json-rpc",
     "sdk/kvstore",
     "sdk/liveness-evm",
