@@ -22,6 +22,18 @@ pub struct Subscriber {
 }
 
 impl Subscriber {
+    /// Create a new [`Subscriber`] instance to listen to events emitted by the
+    /// contract.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let subscriber = Subscriber::new(
+    ///     "ws://127.0.0.1:8545",
+    ///     "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+    /// )
+    /// .unwrap();
+    /// ```
     pub fn new(
         ethereum_websocket_url: impl AsRef<str>,
         contract_address: impl AsRef<str>,
@@ -36,6 +48,47 @@ impl Subscriber {
         })
     }
 
+    /// Start listening to the Ethereum block creation and contract events.
+    ///
+    /// # WARNING
+    ///
+    /// This is a blocking operation unless spawned in a separate thread.
+    ///
+    /// # Examples - `tokio`
+    ///
+    /// ```
+    /// let context = Arc::new(String::from("context"));
+    ///
+    /// tokio::spawn(async move {
+    ///     Subscriber::new(
+    ///         "ws://127.0.0.1:8545",
+    ///         "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+    ///     )
+    ///     .unwrap()
+    ///     .initialize_event_handler(callback, ())
+    ///     .await
+    ///     .unwrap();
+    /// });
+    ///
+    /// async fn callback(events: Events, context: Arc<String>) {
+    ///     match events {
+    ///         Events::Block(block) => {
+    ///             // Handle Ethereum block creation event.
+    ///         }
+    ///         Events::SsalEvents(contract_events) => match contract_events {
+    ///             SsalEvents::InitializeProposerSet => {
+    ///                 // Handle `InitializeProposerSet` event.
+    ///             }
+    ///             SsalEvents::RegisterSequencer => {
+    ///                 // Handle `RegisterSequencer` event.
+    ///             }
+    ///             SsalEvents::DeregisterSequencer => {
+    ///                 // Handle `DeregisterSequencer` event.
+    ///             }
+    ///         },
+    ///     }
+    /// }
+    /// ```
     pub async fn initialize_event_handler<CB, CTX, F>(
         &self,
         callback: CB,
