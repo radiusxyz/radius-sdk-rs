@@ -1,5 +1,5 @@
 pub use alloy::{
-    primitives::{Address, FixedBytes, Uint},
+    primitives::*,
     rpc::types::{Block, Log},
 };
 
