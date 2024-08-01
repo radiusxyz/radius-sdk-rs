@@ -19,6 +19,7 @@ pub enum KvStoreError {
     Update(rocksdb::Error),
     CommitUpdate(rocksdb::Error),
     NoneType,
+    Initialize,
 }
 
 impl std::fmt::Display for KvStoreError {
