@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+block-commitment = { path = "../sdk/block-commitment", optional = true }
 context = { path = "../sdk/context", optional = true }
 json-rpc = { path = "../sdk/json-rpc", optional = true }
 kvstore = { path = "../sdk/kvstore", optional = true }
