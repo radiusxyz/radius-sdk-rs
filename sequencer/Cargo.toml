@@ -12,7 +12,7 @@ liveness-evm = { path = "../sdk/liveness-evm", default-features = false, optiona
 validation-eigenlayer = { path = "../sdk/validation-eigenlayer", default-features = false, optional = true }
 
 [features]
-full = ["dep:context", "dep:json-rpc", "dep:kvstore"]
+full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "dep:kvstore"]
 context = ["dep:context"]
 json-rpc = ["dep:json-rpc"]
 kvstore = ["dep:kvstore"]
