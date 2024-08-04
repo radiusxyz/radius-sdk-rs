@@ -36,11 +36,16 @@ impl Subscriber {
     /// ```
     pub fn new(
         ethereum_websocket_url: impl AsRef<str>,
-        contract_address: impl AsRef<str>,
+        ssal_contract_address: impl AsRef<str>,
     ) -> Result<Self, SubscriberError> {
         let connection_detail = WsConnect::new(ethereum_websocket_url.as_ref());
-        let ssal_contract_address = Address::from_str(contract_address.as_ref())
-            .map_err(SubscriberError::ParseContractAddress)?;
+        let ssal_contract_address =
+            Address::from_str(ssal_contract_address.as_ref()).map_err(|error| {
+                SubscriberError::ParseContractAddress(
+                    ssal_contract_address.as_ref().to_owned(),
+                    error,
+                )
+            })?;
 
         Ok(Self {
             connection_detail,
@@ -202,7 +207,7 @@ impl EventStream {
 
 #[derive(Debug)]
 pub enum SubscriberError {
-    ParseContractAddress(alloy::hex::FromHexError),
+    ParseContractAddress(String, alloy::hex::FromHexError),
     WebsocketProvider(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     NewBlockEventStream(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     SubscribeToBlock(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),

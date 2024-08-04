@@ -60,7 +60,7 @@ impl Publisher {
     pub fn new(
         ethereum_rpc_url: impl AsRef<str>,
         signing_key: impl AsRef<str>,
-        contract_address: impl AsRef<str>,
+        ssal_contract_address: impl AsRef<str>,
     ) -> Result<Self, PublisherError> {
         let rpc_url: Url = ethereum_rpc_url
             .as_ref()
@@ -77,8 +77,13 @@ impl Publisher {
             .wallet(wallet)
             .on_http(rpc_url);
 
-        let ssal_contract_address = Address::from_str(contract_address.as_ref())
-            .map_err(PublisherError::ParseContractAddress)?;
+        let ssal_contract_address =
+            Address::from_str(ssal_contract_address.as_ref()).map_err(|error| {
+                PublisherError::ParseContractAddress(
+                    ssal_contract_address.as_ref().to_owned(),
+                    error,
+                )
+            })?;
         let ssal_contract = Ssal::SsalInstance::new(ssal_contract_address, provider.clone());
 
         Ok(Self {
@@ -175,15 +180,22 @@ impl Publisher {
             .await
             .map_err(TransactionError::GetReceipt)?;
 
-        let log = transaction_receipt
-            .as_ref()
-            .logs()
-            .first()
-            .ok_or(TransactionError::EmptyLogs)?
-            .log_decode::<T>()
-            .map_err(TransactionError::DecodeLogData)?;
+        match transaction_receipt.as_ref().is_success() {
+            true => {
+                let log = transaction_receipt
+                    .as_ref()
+                    .logs()
+                    .first()
+                    .ok_or(TransactionError::EmptyLogs)?
+                    .log_decode::<T>()
+                    .map_err(TransactionError::DecodeLogData)?;
 
-        Ok(log.inner.data)
+                Ok(log.inner.data)
+            }
+            false => Err(TransactionError::FailedTransaction(
+                transaction_receipt.transaction_hash,
+            )),
+        }
     }
 
     /// Send transaction to initialize the proposer set and wait for the event
@@ -384,6 +396,7 @@ impl Publisher {
 pub enum TransactionError {
     SendTransaction(alloy::contract::Error),
     GetReceipt(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    FailedTransaction(FixedBytes<32>),
     EmptyLogs,
     DecodeLogData(alloy::sol_types::Error),
 }
@@ -400,7 +413,7 @@ impl std::error::Error for TransactionError {}
 pub enum PublisherError {
     ParseEthereumRpcUrl(Box<dyn std::error::Error>),
     ParseSigningKey(alloy::signers::local::LocalSignerError),
-    ParseContractAddress(alloy::hex::FromHexError),
+    ParseContractAddress(String, alloy::hex::FromHexError),
     ParseProposerSetId(alloy::hex::FromHexError),
     GetBlockNumber(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     GetBlockMargin(alloy::contract::Error),
