@@ -4067,7 +4067,6 @@ dependencies = [
  "alloy",
  "chrono",
  "futures",
- "pin-project",
  "rand",
 ]
 
