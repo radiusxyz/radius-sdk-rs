@@ -14,4 +14,16 @@ alloy::sol!(
     "src/contract/IDelegationManager.json"
 );
 
-pub enum Events {}
+alloy::sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    EcdsaStakeRegistry,
+    "src/contract/ECDSAStakeRegistry.json"
+);
+
+alloy::sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    Avs,
+    "src/contract/AVS.json"
+);

@@ -7,5 +7,4 @@ edition = "2021"
 alloy = { workspace = true, features = ["full", "reqwest", "signer-local"] }
 chrono = "0.4"
 futures = { workspace = true }
-pin-project = { workspace = true }
 rand = { workspace = true }

@@ -1,25 +1,13 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    str::FromStr,
-    task::{Context, Poll},
-};
+use std::{future::Future, str::FromStr};
 
-use alloy::{
-    eips::BlockNumberOrTag,
-    providers::{Provider, ProviderBuilder, WsConnect},
-    rpc::types::Filter,
-    sol_types::SolEvent,
-};
-use futures::{stream::select_all, Stream, StreamExt};
-use pin_project::pin_project;
+use alloy::providers::{ProviderBuilder, WsConnect};
+use futures::StreamExt;
 
 use crate::types::*;
 
 pub struct Subscriber {
     connection_detail: WsConnect,
-    avs_directory_contract_address: Address,
-    delegation_manager_contract_address: Address,
+    avs_contract_address: Address,
 }
 
 impl Subscriber {
@@ -32,38 +20,62 @@ impl Subscriber {
     /// let subscriber = Subscriber::new(
     ///     "ws://127.0.0.1:8545",
     ///     "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-    ///     "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+    ///     "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
     /// )
     /// .unwrap();
     /// ```
     pub fn new(
         ethereum_websocket_url: impl AsRef<str>,
-        avs_directory_contract_address: impl AsRef<str>,
-        delegation_manager_contract_address: impl AsRef<str>,
+        avs_contract_address: impl AsRef<str>,
     ) -> Result<Self, SubscriberError> {
         let connection_detail = WsConnect::new(ethereum_websocket_url.as_ref());
-        let avs_directory_contract_address =
-            Address::from_str(avs_directory_contract_address.as_ref())
-                .map_err(SubscriberError::ParseAVSDirectoryContractAddress)?;
-
-        let delegation_manager_contract_address =
-            Address::from_str(delegation_manager_contract_address.as_ref())
-                .map_err(SubscriberError::ParseDelegationManagerContractAddress)?;
+        let avs_contract_address =
+            Address::from_str(avs_contract_address.as_ref()).map_err(|error| {
+                SubscriberError::ParseContractAddress(
+                    avs_contract_address.as_ref().to_owned(),
+                    error,
+                )
+            })?;
 
         Ok(Self {
             connection_detail,
-            avs_directory_contract_address,
-            delegation_manager_contract_address,
+            avs_contract_address,
         })
     }
 
+    /// Start listening to the Block commitment registration event.
+    ///
+    /// # WARNING
+    ///
+    /// This is a blocking operation unless spawned in a separate thread.
+    ///
+    /// # Examples - `tokio`
+    ///
+    /// ```
+    /// let context = Arc::new(String::from("context"));
+    ///
+    /// tokio::spawn(async move {
+    ///     Subscriber::new(
+    ///         "ws://127.0.0.1:8545",
+    ///         "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+    ///     )
+    ///     .unwrap()
+    ///     .initialize_event_handler(callback, context.clone())
+    ///     .await
+    ///     .unwrap();
+    /// });
+    ///
+    /// async fn callback(block_commitment: Avs::NewTaskCreated, _context: Arc<String>) {
+    ///     todo!("Validate the block commitment");
+    /// }
+    /// ```
     pub async fn initialize_event_handler<CB, CTX, F>(
         &self,
         callback: CB,
         context: CTX,
     ) -> Result<(), SubscriberError>
     where
-        CB: Fn(Events, CTX) -> F,
+        CB: Fn(Avs::NewTaskCreated, CTX) -> F,
         CTX: Clone + Send + Sync,
         F: Future<Output = ()>,
     {
@@ -72,13 +84,17 @@ impl Subscriber {
             .await
             .map_err(SubscriberError::WebsocketProvider)?;
 
-        let avs_directory_filter = Filter::new()
-            .address(self.avs_directory_contract_address)
-            .from_block(BlockNumberOrTag::Latest);
+        let avs_contract = Avs::AvsInstance::new(self.avs_contract_address, provider.clone());
+        let mut avs_contract_event_stream = avs_contract
+            .NewTaskCreated_filter()
+            .subscribe()
+            .await
+            .map_err(SubscriberError::SubscribeToAvsContract)?
+            .into_stream();
 
-        let delegation_manager_filter = Filter::new()
-            .address(self.delegation_manager_contract_address)
-            .from_block(BlockNumberOrTag::Latest);
+        while let Some(Ok(event)) = avs_contract_event_stream.next().await {
+            callback(event.0, context.clone()).await;
+        }
 
         Err(SubscriberError::EventStreamDisconnected)
     }
@@ -86,12 +102,9 @@ impl Subscriber {
 
 #[derive(Debug)]
 pub enum SubscriberError {
-    ParseAVSDirectoryContractAddress(alloy::hex::FromHexError),
-    ParseDelegationManagerContractAddress(alloy::hex::FromHexError),
+    ParseContractAddress(String, alloy::hex::FromHexError),
     WebsocketProvider(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    NewBlockEventStream(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    SubscribeToBlock(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    SubscribeToLogs(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    SubscribeToAvsContract(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     EventStreamDisconnected,
 }
 
