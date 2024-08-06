@@ -7,6 +7,7 @@ use jsonrpsee::{
 };
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
+use url::Url;
 
 use crate::{types::RpcParameter, Error, ErrorKind};
 
@@ -44,7 +45,11 @@ where
         Ok(self)
     }
 
-    pub async fn init(self, rpc_endpoint: impl AsRef<str>) -> Result<ServerHandle, Error> {
+    pub async fn init(self, rpc_url: impl AsRef<str>) -> Result<ServerHandle, Error> {
+        let rpc_url =
+            Url::parse(rpc_url.as_ref()).map_err(|error| (ErrorKind::BuildServer, error))?;
+        let endpoint = format!("{}:{}", rpc_url.host().unwrap(), rpc_url.port().unwrap());
+
         let cors = CorsLayer::new()
             .allow_methods([Method::GET, Method::POST])
             .allow_origin(Any)
@@ -57,7 +62,7 @@ where
 
         let server = Server::builder()
             .set_http_middleware(middleware)
-            .build(rpc_endpoint.as_ref())
+            .build(endpoint)
             .await
             .map_err(|error| (ErrorKind::BuildServer, error))?;
 
