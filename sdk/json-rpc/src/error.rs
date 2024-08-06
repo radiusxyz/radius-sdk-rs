@@ -15,6 +15,7 @@ enum ErrorSource {
     RpcMethod(jsonrpsee::core::RegisterMethodError),
     RpcMiddleware(jsonrpsee::server::middleware::http::InvalidPath),
     RpcServer(std::io::Error),
+    ParseUrl(url::ParseError),
     Custom(String),
 }
 
@@ -25,6 +26,7 @@ impl std::fmt::Display for ErrorSource {
             Self::RpcMethod(error) => write!(f, "{}", error),
             Self::RpcMiddleware(error) => write!(f, "{}", error),
             Self::RpcServer(error) => write!(f, "{}", error),
+            Self::ParseUrl(error) => write!(f, "{}", error),
             Self::Custom(error) => write!(f, "{}", error),
         }
     }
@@ -45,6 +47,12 @@ impl From<jsonrpsee::core::RegisterMethodError> for ErrorSource {
 impl From<jsonrpsee::server::middleware::http::InvalidPath> for ErrorSource {
     fn from(value: jsonrpsee::server::middleware::http::InvalidPath) -> Self {
         Self::RpcMiddleware(value)
+    }
+}
+
+impl From<url::ParseError> for ErrorSource {
+    fn from(value: url::ParseError) -> Self {
+        Self::ParseUrl(value)
     }
 }
 
