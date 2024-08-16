@@ -1,11 +1,12 @@
 #[derive(Debug)]
 pub enum Error {
-    ParseSigningKey(crate::signature::Curve, const_hex::FromHexError),
-    InitializeSigningKey(crate::signature::Curve, Box<dyn std::error::Error>),
-    SignMessage(crate::signature::Curve, Box<dyn std::error::Error>),
+    UnsupportedChainId,
+    ParsePrivateKey(const_hex::FromHexError),
+    InitializePrivateKey(Box<dyn std::error::Error>),
+    SignMessage(Box<dyn std::error::Error>),
     SignatureOutOfBound,
-    ParseSignature(crate::signature::Curve, Box<dyn std::error::Error>),
-    ParseVerifyingKey(crate::signature::Curve, Box<dyn std::error::Error>),
+    ParseSignature(Box<dyn std::error::Error>),
+    ParseVerifyingKey(Box<dyn std::error::Error>),
 }
 
 impl std::fmt::Display for Error {
