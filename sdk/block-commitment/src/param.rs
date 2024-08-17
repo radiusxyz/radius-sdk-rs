@@ -92,7 +92,7 @@ impl<'a, E: PairingEngine, const N: usize> From<&'a StructuredReferenceString<E,
     fn from(srs: &'a StructuredReferenceString<E, N>) -> Self {
         Self {
             h: srs.h.to_vec(),
-            t: srs.t.clone(),
+            t: srs.t,
         }
     }
 }
