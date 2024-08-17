@@ -56,4 +56,8 @@ impl Address {
     pub fn len(&self) -> usize {
         self.address.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.address.is_empty()
+    }
 }

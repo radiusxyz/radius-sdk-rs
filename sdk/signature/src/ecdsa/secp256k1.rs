@@ -119,7 +119,7 @@ pub fn verify(
 
     let parsed_signature = Signature::from_slice(&signature[0..64])
         .map_err(|error| Error::ParseSignature(chain_id, error.into()))?;
-    let parsed_recovery_id = parse_recovery_id_byte(*&signature[64], chain_id)?;
+    let parsed_recovery_id = parse_recovery_id_byte(signature[64], chain_id)?;
 
     let public_key = VerifyingKey::recover_from_prehash(
         message.as_slice(),

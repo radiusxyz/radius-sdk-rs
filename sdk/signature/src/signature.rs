@@ -27,7 +27,7 @@ impl Signature {
         match chain_id {
             ChainId::Bitcoin => Err(Error::UnsupportedChainId(chain_id)),
             ChainId::Ethereum => {
-                crate::ecdsa::secp256k1::verify(&self.0, message, address.as_ref(), chain_id)
+                crate::ecdsa::secp256k1::verify(&self.0, message, address, chain_id)
             }
         }
     }
