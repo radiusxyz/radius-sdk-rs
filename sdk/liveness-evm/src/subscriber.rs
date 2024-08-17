@@ -161,12 +161,9 @@ impl Stream for EventStream {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.project() {
-            StreamType::BlockStream(stream) => {
-                stream.poll_next_unpin(cx).map(|event| match event {
-                    Some(block) => Some(Events::Block(block)),
-                    None => None,
-                })
-            }
+            StreamType::BlockStream(stream) => stream
+                .poll_next_unpin(cx)
+                .map(|event| event.map(Events::Block)),
             StreamType::SsalEventStream(stream) => {
                 stream.poll_next_unpin(cx).map(|event| match event {
                     Some(log) => Self::decode_log(log),

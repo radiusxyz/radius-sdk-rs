@@ -85,7 +85,7 @@ impl RpcClient {
     {
         if self.retry != 0 {
             for _ in 0..self.retry {
-                if let Some(response) = self.request_inner(id, parameter.clone()).await.ok() {
+                if let Ok(response) = self.request_inner(id, parameter.clone()).await {
                     return Ok(response);
                 } else {
                     sleep(Duration::from_secs(self.retry_interval)).await;

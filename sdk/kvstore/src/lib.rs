@@ -1,8 +1,7 @@
 mod database;
-pub use database::{KvStore, Lock};
-
 mod error;
-pub use error::KvStoreError;
-
 mod singleton;
+
+pub use database::{KvStore, Lock};
+pub use error::KvStoreError;
 pub use singleton::*;

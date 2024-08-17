@@ -82,7 +82,7 @@ where
         let blinding_evaluation = blinding_p.evaluate(&point);
         end_timer!(blinding_eval_time);
 
-        let random_witness_coeffs = convert_to_bigints(&hiding_witness_polynomial.coeffs());
+        let random_witness_coeffs = convert_to_bigints(hiding_witness_polynomial.coeffs());
         let witness_comm_time =
             start_timer!(|| "Computing commitment to random witness polynomial");
         w += &VariableBaseMSM::multi_scalar_mul(&powers.powers_of_gamma_g, &random_witness_coeffs);

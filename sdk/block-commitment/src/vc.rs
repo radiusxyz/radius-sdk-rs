@@ -51,7 +51,7 @@ impl<E: PairingEngine, const N: usize> CommitmentScheme for Commitment<E, N> {
 
         let com = self.inner.mul(&input_inverse.into_repr()).into_affine();
         let proof = witness.mul(input_inverse.neg().into_repr()).into_affine();
-        let pairing_prod_inputs = vec![
+        let pairing_prod_inputs = [
             (com.into(), vp.h[N - pos - 1].into()),
             (proof.into(), E::G2Affine::prime_subgroup_generator().into()),
         ];
