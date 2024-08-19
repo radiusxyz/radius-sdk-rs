@@ -22,12 +22,12 @@ impl Signature {
         &self,
         message: &[u8],
         address: &[u8],
-        chain_id: ChainId,
+        chain_type: ChainType,
     ) -> Result<(), Error> {
-        match chain_id {
-            ChainId::Bitcoin => Err(Error::UnsupportedChainId(chain_id)),
-            ChainId::Ethereum => {
-                crate::ecdsa::secp256k1::verify(&self.0, message, address, chain_id)
+        match chain_type {
+            ChainType::Bitcoin => Err(Error::UnsupportedChainType(chain_type)),
+            ChainType::Ethereum => {
+                crate::ecdsa::secp256k1::verify(&self.0, message, address, chain_type)
             }
         }
     }

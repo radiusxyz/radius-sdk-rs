@@ -1,14 +1,14 @@
 #[derive(Debug)]
 pub enum Error {
-    UnsupportedChainId(crate::chain::ChainId),
-    ParsePrivateKey(crate::chain::ChainId, const_hex::FromHexError),
-    InitializePrivateKey(crate::chain::ChainId, Box<dyn std::error::Error>),
-    SignMessage(crate::chain::ChainId, Box<dyn std::error::Error>),
+    UnsupportedChainType(crate::chain::ChainType),
+    ParsePrivateKey(crate::chain::ChainType, const_hex::FromHexError),
+    InitializePrivateKey(crate::chain::ChainType, Box<dyn std::error::Error>),
+    SignMessage(crate::chain::ChainType, Box<dyn std::error::Error>),
     SignatureOutOfBound,
-    ParseSignature(crate::chain::ChainId, Box<dyn std::error::Error>),
-    ParseRecoveryId(crate::chain::ChainId, u8),
-    RecoverVerifyingKey(crate::chain::ChainId, Box<dyn std::error::Error>),
-    AddressMismatch(crate::chain::ChainId),
+    ParseSignature(crate::chain::ChainType, Box<dyn std::error::Error>),
+    ParseRecoveryId(crate::chain::ChainType, u8),
+    RecoverVerifyingKey(crate::chain::ChainType, Box<dyn std::error::Error>),
+    AddressMismatch(crate::chain::ChainType),
 }
 
 impl std::fmt::Display for Error {

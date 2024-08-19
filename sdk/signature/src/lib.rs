@@ -5,7 +5,7 @@ mod error;
 mod signature;
 
 pub use address::Address;
-pub use chain::ChainId;
+pub use chain::ChainType;
 pub use error::Error;
 pub use signature::Signature;
 
@@ -15,19 +15,19 @@ where
 {
     fn address(&self) -> &Address;
 
-    fn chain_id(&self) -> ChainId;
+    fn chain_type(&self) -> ChainType;
 
-    fn from_str(private_key: &str, chain_id: ChainId) -> Result<Self, Error>;
+    fn from_str(private_key: &str, chain_type: ChainType) -> Result<Self, Error>;
 
-    fn generate_random(chain_id: ChainId) -> Result<Self, Error>;
+    fn generate_random(chain_type: ChainType) -> Result<Self, Error>;
 
     fn sign_message(&self, message: &[u8]) -> Result<Signature, Error>;
 }
 
-impl ChainId {
+impl ChainType {
     pub fn create_signer(self, private_key: &str) -> Result<impl PrivateKeySigner, Error> {
         match self {
-            Self::Bitcoin => Err(Error::UnsupportedChainId(ChainId::Bitcoin)),
+            Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
             Self::Ethereum => {
                 <ecdsa::secp256k1::PrivateKey as PrivateKeySigner>::from_str(private_key, self)
             }
@@ -36,7 +36,7 @@ impl ChainId {
 
     pub fn create_signer_random(self) -> Result<impl PrivateKeySigner, Error> {
         match self {
-            Self::Bitcoin => Err(Error::UnsupportedChainId(ChainId::Bitcoin)),
+            Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
             Self::Ethereum => {
                 <ecdsa::secp256k1::PrivateKey as PrivateKeySigner>::generate_random(self)
             }
@@ -52,14 +52,18 @@ fn works() {
         use alloy::signers::local::LocalSigner;
 
         let signer = LocalSigner::from_str(signing_key).unwrap();
+        let signer_address = signer.address();
+        println!("alloy address: {:?}", signer_address.as_slice());
 
-        signer.address()
+        signer_address
     }
 
     pub fn sequencer_address(signing_key: &str) -> Address {
-        let signer = ChainId::Ethereum.create_signer(signing_key).unwrap();
+        let signer = ChainType::Ethereum.create_signer(signing_key).unwrap();
+        let signer_address = signer.address().clone();
+        println!("sequencer address{:?}", signer_address);
 
-        signer.address().clone()
+        signer_address
     }
 
     pub fn verify_signature(signing_key: &str, message: &str) {
@@ -67,20 +71,24 @@ fn works() {
 
         use alloy::signers::{local::LocalSigner, SignerSync};
 
-        let signer = LocalSigner::from_str(signing_key).unwrap();
-        let signature = signer.sign_message_sync(message.as_bytes()).unwrap();
+        let alloy_signer = LocalSigner::from_str(signing_key).unwrap();
+        let alloy_signature = alloy_signer.sign_message_sync(message.as_bytes()).unwrap();
         println!(
             "alloy signature (len: {}): {:?}",
-            signature.as_bytes().len(),
-            signature.as_bytes()
+            alloy_signature.as_bytes().len(),
+            alloy_signature.as_bytes()
         );
 
-        let sequencer_signature = Signature::from(signature.as_bytes().to_vec());
-        sequencer_signature
+        let sequencer_signer = ChainType::Ethereum.create_signer(signing_key).unwrap();
+        let sequencer_signature = sequencer_signer.sign_message(message.as_bytes()).unwrap();
+        println!("sequencer signature: {:?}", sequencer_signature);
+
+        let parsed_signature = Signature::from(alloy_signature.as_bytes().to_vec());
+        parsed_signature
             .verify_signature(
                 message.as_bytes(),
-                signer.address().as_slice(),
-                ChainId::Ethereum,
+                alloy_signer.address().as_slice(),
+                ChainType::Ethereum,
             )
             .unwrap();
     }

@@ -2,7 +2,7 @@ use crate::{chain::*, error::Error};
 
 pub struct Address {
     address: Vec<u8>,
-    chain_id: ChainId,
+    chain_type: ChainType,
 }
 
 impl<T: AsRef<[u8]>> std::cmp::PartialEq<T> for Address {
@@ -27,30 +27,30 @@ impl Clone for Address {
     fn clone(&self) -> Self {
         Self {
             address: self.address.clone(),
-            chain_id: self.chain_id,
+            chain_type: self.chain_type,
         }
     }
 }
 
-impl From<(Vec<u8>, ChainId)> for Address {
-    fn from(value: (Vec<u8>, ChainId)) -> Self {
+impl From<(Vec<u8>, ChainType)> for Address {
+    fn from(value: (Vec<u8>, ChainType)) -> Self {
         Self {
             address: value.0,
-            chain_id: value.1,
+            chain_type: value.1,
         }
     }
 }
 
 impl Address {
-    pub fn from_slice(slice: &[u8], chain_id: ChainId) -> Result<Self, Error> {
-        match chain_id {
-            ChainId::Bitcoin => Err(Error::UnsupportedChainId(chain_id)),
-            ChainId::Ethereum => Ok((ethereum::ethereum_address(slice), chain_id).into()),
+    pub fn from_slice(slice: &[u8], chain_type: ChainType) -> Result<Self, Error> {
+        match chain_type {
+            ChainType::Bitcoin => Err(Error::UnsupportedChainType(chain_type)),
+            ChainType::Ethereum => Ok((ethereum::ethereum_address(slice), chain_type).into()),
         }
     }
 
-    pub fn chain_id(&self) -> ChainId {
-        self.chain_id
+    pub fn chain_type(&self) -> ChainType {
+        self.chain_type
     }
 
     pub fn len(&self) -> usize {
