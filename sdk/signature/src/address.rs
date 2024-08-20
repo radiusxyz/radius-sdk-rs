@@ -1,4 +1,4 @@
-use crate::{chain::*, error::Error};
+use crate::{chain::*, error::Error, util::*};
 
 pub struct Address {
     address: Vec<u8>,
@@ -17,11 +17,17 @@ impl std::cmp::PartialEq<[u8]> for Address {
     }
 }
 
+impl std::cmp::PartialEq<Self> for Address {
+    fn eq(&self, other: &Self) -> bool {
+        self.address == other.address
+    }
+}
+
 impl std::fmt::Debug for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.chain_type {
             ChainType::Bitcoin => write!(f, "{:?}", self.address),
-            ChainType::Ethereum => self.fmt_hex_string(f),
+            ChainType::Ethereum => fmt_hex_string(f, &self.address),
         }
     }
 }
@@ -48,7 +54,7 @@ impl Address {
     pub fn from_slice(slice: &[u8], chain_type: ChainType) -> Result<Self, Error> {
         match chain_type {
             ChainType::Bitcoin => Err(Error::UnsupportedChainType(chain_type)),
-            ChainType::Ethereum => Ok((ethereum::ethereum_address(slice), chain_type).into()),
+            ChainType::Ethereum => Ok((ethereum::address_from_slice(slice), chain_type).into()),
         }
     }
 
@@ -62,12 +68,5 @@ impl Address {
 
     pub fn is_empty(&self) -> bool {
         self.address.is_empty()
-    }
-
-    pub fn fmt_hex_string(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str("0x")?;
-        self.address
-            .iter()
-            .try_for_each(|byte| f.write_fmt(format_args!("{:x?}", byte)))
     }
 }
