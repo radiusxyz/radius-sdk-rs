@@ -19,7 +19,10 @@ impl std::cmp::PartialEq<[u8]> for Address {
 
 impl std::fmt::Debug for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.address)
+        match self.chain_type {
+            ChainType::Bitcoin => write!(f, "{:?}", self.address),
+            ChainType::Ethereum => self.fmt_hex_string(f),
+        }
     }
 }
 
@@ -59,5 +62,12 @@ impl Address {
 
     pub fn is_empty(&self) -> bool {
         self.address.is_empty()
+    }
+
+    pub fn fmt_hex_string(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("0x")?;
+        self.address
+            .iter()
+            .try_for_each(|byte| f.write_fmt(format_args!("{:x?}", byte)))
     }
 }

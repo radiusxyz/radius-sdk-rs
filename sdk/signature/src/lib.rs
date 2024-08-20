@@ -53,7 +53,7 @@ fn works() {
 
         let signer = LocalSigner::from_str(signing_key).unwrap();
         let signer_address = signer.address();
-        println!("alloy address: {:?}", signer_address.as_slice());
+        println!("alloy address: {:?}", signer_address);
 
         signer_address
     }
@@ -61,7 +61,7 @@ fn works() {
     pub fn sequencer_address(signing_key: &str) -> Address {
         let signer = ChainType::Ethereum.create_signer(signing_key).unwrap();
         let signer_address = signer.address().clone();
-        println!("sequencer address{:?}", signer_address);
+        println!("sequencer address: {:?}", signer_address);
 
         signer_address
     }
@@ -81,7 +81,11 @@ fn works() {
 
         let sequencer_signer = ChainType::Ethereum.create_signer(signing_key).unwrap();
         let sequencer_signature = sequencer_signer.sign_message(message.as_bytes()).unwrap();
-        println!("sequencer signature: {:?}", sequencer_signature);
+        println!(
+            "sequencer signature (len: {}): {:?}",
+            sequencer_signature.len(),
+            sequencer_signature
+        );
 
         let parsed_signature = Signature::from(alloy_signature.as_bytes().to_vec());
         parsed_signature
