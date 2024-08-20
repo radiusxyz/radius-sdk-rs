@@ -1,8 +1,10 @@
 use sha3::{Digest, Keccak256};
 
+use crate::error::Error;
+
 pub const EIP191_PREFIX: &str = "\x19Ethereum Signed Message:\n";
 
-pub fn ethereum_address(slice: &[u8]) -> Vec<u8> {
+pub fn address_from_slice(slice: &[u8]) -> Vec<u8> {
     let mut hasher = Keccak256::new();
     hasher.update(&slice[1..]);
     let output = &hasher.finalize_reset()[12..];

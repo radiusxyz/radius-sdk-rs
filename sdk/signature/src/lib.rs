@@ -3,6 +3,7 @@ mod chain;
 pub mod ecdsa;
 mod error;
 mod signature;
+mod util;
 
 pub use address::Address;
 pub use chain::ChainType;
@@ -17,15 +18,29 @@ where
 
     fn chain_type(&self) -> ChainType;
 
+    fn from_slice(private_key: &[u8], chain_type: ChainType) -> Result<Self, Error>;
+
     fn from_str(private_key: &str, chain_type: ChainType) -> Result<Self, Error>;
 
-    fn generate_random(chain_type: ChainType) -> Result<Self, Error>;
+    fn generate_random(chain_type: ChainType) -> Result<(Self, Vec<u8>), Error>;
 
     fn sign_message(&self, message: &[u8]) -> Result<Signature, Error>;
 }
 
 impl ChainType {
-    pub fn create_signer(self, private_key: &str) -> Result<impl PrivateKeySigner, Error> {
+    pub fn create_signer_from_slice(
+        self,
+        private_key: &[u8],
+    ) -> Result<impl PrivateKeySigner, Error> {
+        match self {
+            Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
+            Self::Ethereum => {
+                <ecdsa::secp256k1::PrivateKey as PrivateKeySigner>::from_slice(private_key, self)
+            }
+        }
+    }
+
+    pub fn create_signer_from_str(self, private_key: &str) -> Result<impl PrivateKeySigner, Error> {
         match self {
             Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
             Self::Ethereum => {
@@ -34,7 +49,7 @@ impl ChainType {
         }
     }
 
-    pub fn create_signer_random(self) -> Result<impl PrivateKeySigner, Error> {
+    pub fn create_signer_random(self) -> Result<(impl PrivateKeySigner, Vec<u8>), Error> {
         match self {
             Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
             Self::Ethereum => {
@@ -45,7 +60,7 @@ impl ChainType {
 }
 
 #[test]
-fn works() {
+fn test_address_comparison() {
     pub fn alloy_address(signing_key: &str) -> alloy::primitives::Address {
         use std::str::FromStr;
 
@@ -59,13 +74,24 @@ fn works() {
     }
 
     pub fn sequencer_address(signing_key: &str) -> Address {
-        let signer = ChainType::Ethereum.create_signer(signing_key).unwrap();
+        let signer = ChainType::Ethereum
+            .create_signer_from_str(signing_key)
+            .unwrap();
         let signer_address = signer.address().clone();
         println!("sequencer address: {:?}", signer_address);
 
         signer_address
     }
 
+    let signing_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+    let address_alloy = alloy_address(signing_key);
+    let address_sequencer = sequencer_address(signing_key);
+    assert!(address_sequencer == address_alloy);
+}
+
+#[test]
+fn test_signature_verification() {
     pub fn verify_signature(signing_key: &str, message: &str) {
         use std::str::FromStr;
 
@@ -79,7 +105,9 @@ fn works() {
             alloy_signature.as_bytes()
         );
 
-        let sequencer_signer = ChainType::Ethereum.create_signer(signing_key).unwrap();
+        let sequencer_signer = ChainType::Ethereum
+            .create_signer_from_str(signing_key)
+            .unwrap();
         let sequencer_signature = sequencer_signer.sign_message(message.as_bytes()).unwrap();
         println!(
             "sequencer signature (len: {}): {:?}",
@@ -100,9 +128,24 @@ fn works() {
     let signing_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
     let message = "12345";
 
-    let address_alloy = alloy_address(signing_key);
-    let address_sequencer = sequencer_address(signing_key);
-    assert!(address_sequencer == address_alloy);
-
     verify_signature(signing_key, message);
+}
+
+#[test]
+fn test_random_generation() {
+    use alloy::signers::local::LocalSigner;
+
+    let (signer_random, private_key_vec) = ChainType::Ethereum.create_signer_random().unwrap();
+    println!("Generated private key vec: {:?}", private_key_vec);
+
+    let alloy_signer = LocalSigner::from_slice(&private_key_vec).unwrap();
+    let sequencer_signer = ChainType::Ethereum
+        .create_signer_from_slice(&private_key_vec)
+        .unwrap();
+
+    let address_signer_random = signer_random.address();
+    let address_sequencer = sequencer_signer.address();
+    let address_alloy = alloy_signer.address();
+    assert!(address_signer_random == address_sequencer);
+    assert!(address_signer_random == address_alloy.as_slice());
 }

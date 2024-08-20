@@ -9,6 +9,7 @@ pub enum Error {
     ParseRecoveryId(crate::chain::ChainType, u8),
     RecoverVerifyingKey(crate::chain::ChainType, Box<dyn std::error::Error>),
     AddressMismatch(crate::chain::ChainType),
+    BytesToHexString(std::fmt::Error),
 }
 
 impl std::fmt::Display for Error {

@@ -21,6 +21,25 @@ impl PrivateKeySigner for PrivateKey {
         self.chain_type
     }
 
+    fn from_slice(private_key: &[u8], chain_type: ChainType) -> Result<Self, Error> {
+        let private_key = SigningKey::from_slice(private_key)
+            .map_err(|error| Error::InitializePrivateKey(chain_type, error.into()))?;
+        let address = Address::from_slice(
+            private_key
+                .verifying_key()
+                .as_affine()
+                .to_encoded_point(false)
+                .as_bytes(),
+            chain_type,
+        )?;
+
+        Ok(Self {
+            private_key,
+            address,
+            chain_type,
+        })
+    }
+
     fn from_str(private_key: &str, chain_type: ChainType) -> Result<Self, Error> {
         let array = const_hex::decode_to_array::<_, 32>(private_key)
             .map_err(|error| Error::ParsePrivateKey(chain_type, error))?;
@@ -42,7 +61,7 @@ impl PrivateKeySigner for PrivateKey {
         })
     }
 
-    fn generate_random(chain_type: ChainType) -> Result<Self, Error> {
+    fn generate_random(chain_type: ChainType) -> Result<(Self, Vec<u8>), Error> {
         let private_key = SigningKey::random(&mut OsRng);
         let address = Address::from_slice(
             private_key
@@ -53,11 +72,15 @@ impl PrivateKeySigner for PrivateKey {
             chain_type,
         )?;
 
-        Ok(Self {
+        let private_key_vec = private_key.to_bytes().to_vec();
+
+        let private_key = Self {
             private_key,
             address,
             chain_type,
-        })
+        };
+
+        Ok((private_key, private_key_vec))
     }
 
     fn sign_message(&self, message: &[u8]) -> Result<crate::Signature, Error> {
