@@ -7,6 +7,7 @@ members = [
     "sdk/json-rpc",
     "sdk/kvstore",
     "sdk/liveness-evm",
+    "sdk/signature",
     "sdk/validation-eigenlayer",
     "sequencer",
 ]
