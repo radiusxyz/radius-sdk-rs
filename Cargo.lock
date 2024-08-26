@@ -2967,6 +2967,7 @@ dependencies = [
  "json-rpc",
  "kvstore",
  "liveness-evm",
+ "signature 0.1.0",
  "validation-eigenlayer",
 ]
 
