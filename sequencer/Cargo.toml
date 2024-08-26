@@ -9,6 +9,7 @@ context = { path = "../sdk/context", optional = true }
 json-rpc = { path = "../sdk/json-rpc", optional = true }
 kvstore = { path = "../sdk/kvstore", optional = true }
 liveness-evm = { path = "../sdk/liveness-evm", default-features = false, optional = true }
+signature = { path = "../sdk/signature", optional = true }
 validation-eigenlayer = { path = "../sdk/validation-eigenlayer", default-features = false, optional = true }
 
 [features]
@@ -17,4 +18,5 @@ context = ["dep:context"]
 json-rpc = ["dep:json-rpc"]
 kvstore = ["dep:kvstore"]
 liveness-evm = ["dep:liveness-evm"]
+signature = ["dep:signature"]
 validation-eigenlayer = ["dep:validation-eigenlayer"]
