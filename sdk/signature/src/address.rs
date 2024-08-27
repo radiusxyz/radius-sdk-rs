@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{chain::*, error::Error, util::*};
 
+#[derive(Deserialize, Serialize)]
 pub struct Address {
     address: Vec<u8>,
     chain_type: ChainType,
