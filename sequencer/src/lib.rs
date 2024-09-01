@@ -8,5 +8,7 @@ pub use json_rpc;
 pub use kvstore;
 #[cfg(feature = "liveness-evm")]
 pub use liveness_evm;
+#[cfg(feature = "signature")]
+pub use signature;
 #[cfg(feature = "validation-eigenlayer")]
 pub use validation_eigenlayer;
