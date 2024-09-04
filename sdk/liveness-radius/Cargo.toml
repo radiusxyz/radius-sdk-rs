@@ -1,5 +1,5 @@
 [package]
-name = "liveness-evm"
+name = "liveness-radius"
 version = "0.1.0"
 edition = "2021"
 

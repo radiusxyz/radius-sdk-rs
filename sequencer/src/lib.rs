@@ -6,7 +6,7 @@ pub use context;
 pub use json_rpc;
 #[cfg(any(feature = "full", feature = "kvstore"))]
 pub use kvstore;
-#[cfg(feature = "liveness-evm")]
+#[cfg(feature = "liveness-radius")]
 pub use liveness_evm;
 #[cfg(feature = "signature")]
 pub use signature;

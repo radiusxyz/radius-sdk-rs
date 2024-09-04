@@ -18,7 +18,7 @@ use crate::types::*;
 
 pub struct Subscriber {
     connection_detail: WsConnect,
-    ssal_contract_address: Address,
+    liveness_contract_address: Address,
 }
 
 impl Subscriber {
@@ -36,20 +36,20 @@ impl Subscriber {
     /// ```
     pub fn new(
         ethereum_websocket_url: impl AsRef<str>,
-        ssal_contract_address: impl AsRef<str>,
+        liveness_contract_address: impl AsRef<str>,
     ) -> Result<Self, SubscriberError> {
         let connection_detail = WsConnect::new(ethereum_websocket_url.as_ref());
-        let ssal_contract_address =
-            Address::from_str(ssal_contract_address.as_ref()).map_err(|error| {
+        let liveness_contract_address = Address::from_str(liveness_contract_address.as_ref())
+            .map_err(|error| {
                 SubscriberError::ParseContractAddress(
-                    ssal_contract_address.as_ref().to_owned(),
+                    liveness_contract_address.as_ref().to_owned(),
                     error,
                 )
             })?;
 
         Ok(Self {
             connection_detail,
-            ssal_contract_address,
+            liveness_contract_address,
         })
     }
 
@@ -80,14 +80,14 @@ impl Subscriber {
     ///         Events::Block(block) => {
     ///             // Handle Ethereum block creation event.
     ///         }
-    ///         Events::SsalEvents(contract_events) => match contract_events {
-    ///             SsalEvents::InitializeProposerSet => {
-    ///                 // Handle `InitializeProposerSet` event.
+    ///         Events::LivenessEvents(contract_events) => match contract_events {
+    ///             LivenessEvents::InitializeCluster => {
+    ///                 // Handle `InitializeCluster` event.
     ///             }
-    ///             SsalEvents::RegisterSequencer => {
+    ///             LivenessEvents::RegisterSequencer => {
     ///                 // Handle `RegisterSequencer` event.
     ///             }
-    ///             SsalEvents::DeregisterSequencer => {
+    ///             LivenessEvents::DeregisterSequencer => {
     ///                 // Handle `DeregisterSequencer` event.
     ///             }
     ///         },
@@ -118,10 +118,10 @@ impl Subscriber {
             .into();
 
         let filter = Filter::new()
-            .address(self.ssal_contract_address)
+            .address(self.liveness_contract_address)
             .from_block(BlockNumberOrTag::Latest);
 
-        let ssal_event_stream: EventStream = provider
+        let Liveness_event_stream: EventStream = provider
             .subscribe_logs(&filter)
             .await
             .map_err(SubscriberError::SubscribeToLogs)?
@@ -129,7 +129,7 @@ impl Subscriber {
             .boxed()
             .into();
 
-        let mut event_stream = select_all(vec![block_stream, ssal_event_stream]);
+        let mut event_stream = select_all(vec![block_stream, Liveness_event_stream]);
         while let Some(event) = event_stream.next().await {
             callback(event, context.clone()).await;
         }
@@ -141,7 +141,7 @@ impl Subscriber {
 #[pin_project(project = StreamType)]
 enum EventStream {
     BlockStream(Pin<Box<dyn Stream<Item = Block> + Send>>),
-    SsalEventStream(Pin<Box<dyn Stream<Item = Log> + Send>>),
+    LivenessEventStream(Pin<Box<dyn Stream<Item = Log> + Send>>),
 }
 
 impl From<Pin<Box<dyn Stream<Item = Block> + Send>>> for EventStream {
@@ -152,7 +152,7 @@ impl From<Pin<Box<dyn Stream<Item = Block> + Send>>> for EventStream {
 
 impl From<Pin<Box<dyn Stream<Item = Log> + Send>>> for EventStream {
     fn from(value: Pin<Box<dyn Stream<Item = Log> + Send>>) -> Self {
-        Self::SsalEventStream(value)
+        Self::LivenessEventStream(value)
     }
 }
 
@@ -164,7 +164,7 @@ impl Stream for EventStream {
             StreamType::BlockStream(stream) => stream
                 .poll_next_unpin(cx)
                 .map(|event| event.map(Events::Block)),
-            StreamType::SsalEventStream(stream) => {
+            StreamType::LivenessEventStream(stream) => {
                 stream.poll_next_unpin(cx).map(|event| match event {
                     Some(log) => Self::decode_log(log),
                     None => None,
@@ -177,23 +177,27 @@ impl Stream for EventStream {
 impl EventStream {
     fn decode_log(log: Log) -> Option<Events> {
         match log.topic0() {
-            Some(&Ssal::InitializeProposerSet::SIGNATURE_HASH) => {
-                match log.log_decode::<Ssal::InitializeProposerSet>().ok() {
+            Some(&Liveness::InitializeCluster::SIGNATURE_HASH) => {
+                match log.log_decode::<Liveness::InitializeCluster>().ok() {
                     Some(log) => {
-                        Some(Ssal::SsalEvents::InitializeProposerSet(log.inner.data).into())
+                        Some(Liveness::LivenessEvents::InitializeCluster(log.inner.data).into())
                     }
                     None => None,
                 }
             }
-            Some(&Ssal::RegisterSequencer::SIGNATURE_HASH) => {
-                match log.log_decode::<Ssal::RegisterSequencer>().ok() {
-                    Some(log) => Some(Ssal::SsalEvents::RegisterSequencer(log.inner.data).into()),
+            Some(&Liveness::RegisterSequencer::SIGNATURE_HASH) => {
+                match log.log_decode::<Liveness::RegisterSequencer>().ok() {
+                    Some(log) => {
+                        Some(Liveness::LivenessEvents::RegisterSequencer(log.inner.data).into())
+                    }
                     None => None,
                 }
             }
-            Some(&Ssal::DeregisterSequencer::SIGNATURE_HASH) => {
-                match log.log_decode::<Ssal::DeregisterSequencer>().ok() {
-                    Some(log) => Some(Ssal::SsalEvents::DeregisterSequencer(log.inner.data).into()),
+            Some(&Liveness::DeregisterSequencer::SIGNATURE_HASH) => {
+                match log.log_decode::<Liveness::DeregisterSequencer>().ok() {
+                    Some(log) => {
+                        Some(Liveness::LivenessEvents::DeregisterSequencer(log.inner.data).into())
+                    }
                     None => None,
                 }
             }

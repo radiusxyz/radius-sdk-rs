@@ -6,7 +6,7 @@ members = [
     "sdk/context",
     "sdk/json-rpc",
     "sdk/kvstore",
-    "sdk/liveness-evm",
+    "sdk/liveness-radius",
     "sdk/signature",
     "sdk/validation-eigenlayer",
     "sequencer",

@@ -25,7 +25,7 @@ type EthereumHttpProvider = FillProvider<
     Ethereum,
 >;
 
-type SsalContract = Ssal::SsalInstance<
+type LivenessContract = Liveness::LivenessInstance<
     Http<Client>,
     FillProvider<
         JoinFill<
@@ -40,7 +40,7 @@ type SsalContract = Ssal::SsalInstance<
 
 pub struct Publisher {
     provider: EthereumHttpProvider,
-    ssal_contract: SsalContract,
+    liveness_contract: LivenessContract,
 }
 
 impl Publisher {
@@ -60,7 +60,7 @@ impl Publisher {
     pub fn new(
         ethereum_rpc_url: impl AsRef<str>,
         signing_key: impl AsRef<str>,
-        ssal_contract_address: impl AsRef<str>,
+        liveness_contract_address: impl AsRef<str>,
     ) -> Result<Self, PublisherError> {
         let rpc_url: Url = ethereum_rpc_url
             .as_ref()
@@ -77,18 +77,19 @@ impl Publisher {
             .wallet(wallet)
             .on_http(rpc_url);
 
-        let ssal_contract_address =
-            Address::from_str(ssal_contract_address.as_ref()).map_err(|error| {
+        let liveness_contract_address = Address::from_str(liveness_contract_address.as_ref())
+            .map_err(|error| {
                 PublisherError::ParseContractAddress(
-                    ssal_contract_address.as_ref().to_owned(),
+                    liveness_contract_address.as_ref().to_owned(),
                     error,
                 )
             })?;
-        let ssal_contract = Ssal::SsalInstance::new(ssal_contract_address, provider.clone());
+        let liveness_contract =
+            Liveness::LivenessInstance::new(liveness_contract_address, provider.clone());
 
         Ok(Self {
             provider,
-            ssal_contract,
+            liveness_contract,
         })
     }
 
@@ -154,7 +155,7 @@ impl Publisher {
     /// ```
     pub async fn get_block_margin(&self) -> Result<Uint<256, 4>, PublisherError> {
         let block_margin = self
-            .ssal_contract
+            .liveness_contract
             .BLOCK_MARGIN()
             .call()
             .await
@@ -211,22 +212,25 @@ impl Publisher {
     /// )
     /// .unwrap();
     ///
-    /// let event = publisher.initialize_proposer_set().await?;
+    /// let event = publisher.initialize_cluster("radius").await?;
     ///
     /// println!(
-    ///     "Owner: {}\nProposer Set ID: {}",
+    ///     "Owner: {}\Cluster ID: {}",
     ///     event.owner, event.proposerSetId
     /// );
     /// ```
-    pub async fn initialize_proposer_set(
+    pub async fn initialize_cluster(
         &self,
-    ) -> Result<Ssal::InitializeProposerSet, PublisherError> {
-        let contract_call = self.ssal_contract.initializeProposerSet();
+        cluster_id: impl AsRef<str>,
+    ) -> Result<Liveness::InitializeCluster, PublisherError> {
+        let contract_call = self
+            .liveness_contract
+            .initializeCluster(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
-        let event: Ssal::InitializeProposerSet = self
+        let event: Liveness::InitializeCluster = self
             .extract_event_from_pending_transaction(pending_transaction)
             .await
-            .map_err(PublisherError::InitializeProposerSet)?;
+            .map_err(PublisherError::InitializeCluster)?;
 
         Ok(event)
     }
@@ -254,14 +258,13 @@ impl Publisher {
     /// ```
     pub async fn register_sequencer(
         &self,
-        proposer_set_id: impl AsRef<str>,
-    ) -> Result<Ssal::RegisterSequencer, PublisherError> {
-        let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
-            .map_err(PublisherError::ParseProposerSetId)?;
-
-        let contract_call = self.ssal_contract.registerSequencer(proposer_set_id);
+        cluster_id: impl AsRef<str>,
+    ) -> Result<Liveness::RegisterSequencer, PublisherError> {
+        let contract_call = self
+            .liveness_contract
+            .registerSequencer(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
-        let event: Ssal::RegisterSequencer = self
+        let event: Liveness::RegisterSequencer = self
             .extract_event_from_pending_transaction(pending_transaction)
             .await
             .map_err(PublisherError::RegisterSequencer)?;
@@ -290,14 +293,13 @@ impl Publisher {
     /// ```
     pub async fn deregister_sequencer(
         &self,
-        proposer_set_id: impl AsRef<str>,
-    ) -> Result<Ssal::DeregisterSequencer, PublisherError> {
-        let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
-            .map_err(PublisherError::ParseProposerSetId)?;
-
-        let contract_call = self.ssal_contract.deregisterSequencer(proposer_set_id);
+        cluster_id: impl AsRef<str>,
+    ) -> Result<Liveness::DeregisterSequencer, PublisherError> {
+        let contract_call = self
+            .liveness_contract
+            .deregisterSequencer(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
-        let event: Ssal::DeregisterSequencer = self
+        let event: Liveness::DeregisterSequencer = self
             .extract_event_from_pending_transaction(pending_transaction)
             .await
             .map_err(PublisherError::DeregisterSequencer)?;
@@ -319,7 +321,7 @@ impl Publisher {
     ///
     /// let block_number = publisher.get_block_number().await.unwrap();
     /// let sequencer_list = publisher
-    ///     .get_sequencer_list(proposer_set_id, block_number)
+    ///     .get_sequencer_list(cluster_id, block_number)
     ///     .await
     ///     .unwrap();
     ///
@@ -327,15 +329,12 @@ impl Publisher {
     /// ```
     pub async fn get_sequencer_list(
         &self,
-        proposer_set_id: impl AsRef<str>,
+        cluster_id: impl AsRef<str>,
         block_number: u64,
     ) -> Result<Vec<Address>, PublisherError> {
-        let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
-            .map_err(PublisherError::ParseProposerSetId)?;
-
         let sequencer_list = self
-            .ssal_contract
-            .getSequencerList(proposer_set_id)
+            .liveness_contract
+            .getSequencerList(cluster_id.as_ref().to_string())
             .call()
             .block(block_number.into())
             .await
@@ -369,20 +368,14 @@ impl Publisher {
     ///     .await
     ///     .unwrap();
     ///
-    /// let is_registered = publisher.is_registered(proposer_set_id).await.unwrap();
+    /// let is_registered = publisher.is_registered(cluster_id).await.unwrap();
     ///
     /// assert!(is_registered == true);
     /// ```
-    pub async fn is_registered(
-        &self,
-        proposer_set_id: impl AsRef<str>,
-    ) -> Result<bool, PublisherError> {
-        let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
-            .map_err(PublisherError::ParseProposerSetId)?;
-
+    pub async fn is_registered(&self, cluster_id: impl AsRef<str>) -> Result<bool, PublisherError> {
         let is_registered: bool = self
-            .ssal_contract
-            .isRegistered(proposer_set_id, self.address())
+            .liveness_contract
+            .isRegistered(cluster_id.as_ref().to_string(), self.address())
             .call()
             .await
             .map_err(PublisherError::IsRegistered)?
@@ -414,10 +407,9 @@ pub enum PublisherError {
     ParseEthereumRpcUrl(Box<dyn std::error::Error>),
     ParseSigningKey(alloy::signers::local::LocalSignerError),
     ParseContractAddress(String, alloy::hex::FromHexError),
-    ParseProposerSetId(alloy::hex::FromHexError),
     GetBlockNumber(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     GetBlockMargin(alloy::contract::Error),
-    InitializeProposerSet(TransactionError),
+    InitializeCluster(TransactionError),
     RegisterSequencer(TransactionError),
     DeregisterSequencer(TransactionError),
     GetSequencerList(alloy::contract::Error),
