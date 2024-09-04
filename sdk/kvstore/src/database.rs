@@ -1,8 +1,9 @@
 use std::{any::type_name, fmt::Debug, path::Path, sync::Arc};
 
-use crate::error::KvStoreError;
 use rocksdb::{Options, Transaction, TransactionDB, TransactionDBOptions};
 use serde::{de::DeserializeOwned, ser::Serialize};
+
+use crate::error::KvStoreError;
 
 pub struct KvStore {
     database: Arc<TransactionDB>,
@@ -60,6 +61,38 @@ impl KvStore {
         })?;
 
         Ok(value)
+    }
+
+    /// Get the value or return `V::default()`.
+    pub fn get_or_default<K, V>(&self, key: &K) -> Result<V, KvStoreError>
+    where
+        K: Debug + Serialize,
+        V: Debug + Default + DeserializeOwned + Serialize,
+    {
+        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
+            type_name: type_name::<K>(),
+            data: format!("{:?}", key),
+            error,
+        })?;
+
+        let value_slice = self
+            .database
+            .get_pinned(key_vec)
+            .map_err(KvStoreError::Get)?;
+
+        match value_slice {
+            Some(value_slice) => {
+                let value: V = bincode::deserialize(value_slice.as_ref()).map_err(|error| {
+                    KvStoreError::Deserialize {
+                        type_name: type_name::<V>(),
+                        error,
+                    }
+                })?;
+
+                Ok(value)
+            }
+            None => Ok(V::default()),
+        }
     }
 
     pub fn get_mut<K, V>(&self, key: &K) -> Result<Lock<V>, KvStoreError>
