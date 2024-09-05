@@ -167,35 +167,6 @@ impl Publisher {
         Ok(block_margin)
     }
 
-    /// # TODO:
-    /// Fix the max sequencer count return type to one of the smaller types.
-    ///
-    /// # Examples
-    /// ```
-    /// let publisher = Publisher::new(
-    ///     "http://127.0.0.1:8545",
-    ///     "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-    ///     "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
-    /// )
-    /// .unwrap();
-    ///
-    /// let block_margin = publisher.get_max_sequencer_count().await.unwrap();
-    /// ```
-    pub async fn get_max_sequencer_count(
-        &self,
-        cluster_id: impl AsRef<str>,
-    ) -> Result<Uint<256, 4>, PublisherError> {
-        let max_sequencer_count = self
-            .liveness_contract
-            .getMaxSequencerNumber(cluster_id.as_ref().to_string())
-            .call()
-            .await
-            .map_err(PublisherError::GetBlockMargin)?
-            ._0;
-
-        Ok(max_sequencer_count)
-    }
-
     /// Send transaction to initialize the cluster and wait for the event
     /// to return.
     ///
@@ -247,8 +218,8 @@ impl Publisher {
     /// let event = publisher.add_rollup("radius", "rollup_1", "0x67d269191c92Caf3cD7723F116c85e6E9bf55933", "txHash", {platform: "ethereum", serviceProvider: "eigen_layer"}).await?;
     ///
     /// println!(
-    ///     "Owner: {}\Cluster ID: {}",
-    ///     event.owner, event.clusterId
+    ///     "Cluster ID: {}\Rollup ID: {}\Rollup Owner: {}",
+    ///     event.clusterId, event.rollupId, event.rollupOwnerAddress
     /// );
     /// ```
     pub async fn add_rollup(
@@ -500,6 +471,37 @@ impl Publisher {
         Ok(filtered_list)
     }
 
+    /// # TODO:
+    /// Fix the max sequencer number return type to one of the smaller types.
+    ///
+    /// # Examples
+    /// ```
+    /// let publisher = Publisher::new(
+    ///     "http://127.0.0.1:8545",
+    ///     "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+    ///     "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+    /// )
+    /// .unwrap();
+    ///
+    /// let max_sequencer_number = publisher
+    ///     .get_max_sequencer_number(cluster_id)
+    ///     .await
+    ///     .unwrap();
+    /// ```
+    pub async fn get_max_sequencer_number(
+        &self,
+        cluster_id: impl AsRef<str>,
+    ) -> Result<Uint<256, 4>, PublisherError> {
+        let max_sequencer_number = self
+            .liveness_contract
+            .getMaxSequencerNumber(cluster_id.as_ref().to_string())
+            .call()
+            .await
+            .map_err(PublisherError::GetBlockMargin)?
+            ._0;
+
+        Ok(max_sequencer_number)
+    }
     /// Check if the current publisher is registered as a sequencer in the
     /// cluster.
     ///
@@ -512,11 +514,6 @@ impl Publisher {
     ///     "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
     /// )
     /// .unwrap();
-    ///
-    /// let _event = publisher
-    ///     .register_sequencer("0xdd45347e5d10daaadb40f185225fc8d860d2888b5c411aca387e17a265e2f491")
-    ///     .await
-    ///     .unwrap();
     ///
     /// let is_registered_sequencer = publisher.is_registered_sequencer(cluster_id).await.unwrap();
     ///
