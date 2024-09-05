@@ -12,6 +12,7 @@ use alloy::{
     sol_types::SolEvent,
     transports::http::{reqwest::Url, Client, Http},
 };
+use Liveness::RollupInfo;
 
 use crate::types::*;
 
@@ -473,6 +474,44 @@ impl Publisher {
         Ok(filtered_list)
     }
 
+    pub async fn get_rollup_info_list(
+        &self,
+        cluster_id: impl AsRef<str>,
+        block_number: u64,
+    ) -> Result<Vec<RollupInfo>, PublisherError> {
+        let executor_list = self
+            .liveness_contract
+            .getRollupInfoList(cluster_id.as_ref().to_string())
+            .call()
+            .block(block_number.into())
+            .await
+            .map_err(PublisherError::GetRollupInfoList)?
+            ._0;
+
+        Ok(executor_list)
+    }
+
+    pub async fn get_rollup_info(
+        &self,
+        cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+        block_number: u64,
+    ) -> Result<RollupInfo, PublisherError> {
+        let rollup_info = self
+            .liveness_contract
+            .getRollupInfo(
+                cluster_id.as_ref().to_string(),
+                rollup_id.as_ref().to_string(),
+            )
+            .call()
+            .block(block_number.into())
+            .await
+            .map_err(PublisherError::GetRollupInfo)?
+            ._0;
+
+        Ok(rollup_info)
+    }
+
     /// # TODO:
     /// Fix the max sequencer number return type to one of the smaller types.
     ///
@@ -504,6 +543,47 @@ impl Publisher {
 
         Ok(max_sequencer_number)
     }
+
+    pub async fn is_added_rollup(
+        &self,
+        cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+    ) -> Result<bool, PublisherError> {
+        let is_added_rollup: bool = self
+            .liveness_contract
+            .isAddedRollup(
+                cluster_id.as_ref().to_string(),
+                rollup_id.as_ref().to_string(),
+            )
+            .call()
+            .await
+            .map_err(PublisherError::IsRegistered)?
+            ._0;
+
+        Ok(is_added_rollup)
+    }
+
+    pub async fn is_registered_rollup_executor(
+        &self,
+        cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+        executor_address: Address,
+    ) -> Result<bool, PublisherError> {
+        let is_registered_rollup_executor: bool = self
+            .liveness_contract
+            .isRegisteredRollupExecutor(
+                cluster_id.as_ref().to_string(),
+                rollup_id.as_ref().to_string(),
+                executor_address,
+            )
+            .call()
+            .await
+            .map_err(PublisherError::IsRegistered)?
+            ._0;
+
+        Ok(is_registered_rollup_executor)
+    }
+
     /// Check if the current publisher is registered as a sequencer in the
     /// cluster.
     ///
@@ -601,6 +681,8 @@ pub enum PublisherError {
     RegisterSequencer(TransactionError),
     DeregisterSequencer(TransactionError),
     GetSequencerList(alloy::contract::Error),
+    GetRollupInfoList(alloy::contract::Error),
+    GetRollupInfo(alloy::contract::Error),
     IsRegistered(alloy::contract::Error),
 }
 
