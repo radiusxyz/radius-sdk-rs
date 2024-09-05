@@ -90,6 +90,12 @@ impl Subscriber {
     ///             LivenessEvents::DeregisterSequencer => {
     ///                 // Handle `DeregisterSequencer` event.
     ///             }
+    ///             LivenessEvents::AddRollup => {
+    ///                 // Handle `AddRollup` event.
+    ///             }
+    ///             LivenessEvents::RegisterRollupExecutor => {
+    ///                 // Handle `RegisterRollupExecutor` event.
+    ///             }
     ///         },
     ///     }
     /// }
@@ -121,7 +127,7 @@ impl Subscriber {
             .address(self.liveness_contract_address)
             .from_block(BlockNumberOrTag::Latest);
 
-        let Liveness_event_stream: EventStream = provider
+        let liveness_event_stream: EventStream = provider
             .subscribe_logs(&filter)
             .await
             .map_err(SubscriberError::SubscribeToLogs)?
@@ -129,7 +135,7 @@ impl Subscriber {
             .boxed()
             .into();
 
-        let mut event_stream = select_all(vec![block_stream, Liveness_event_stream]);
+        let mut event_stream = select_all(vec![block_stream, liveness_event_stream]);
         while let Some(event) = event_stream.next().await {
             callback(event, context.clone()).await;
         }
@@ -198,6 +204,20 @@ impl EventStream {
                     Some(log) => {
                         Some(Liveness::LivenessEvents::DeregisterSequencer(log.inner.data).into())
                     }
+                    None => None,
+                }
+            }
+            Some(&Liveness::AddRollup::SIGNATURE_HASH) => {
+                match log.log_decode::<Liveness::AddRollup>().ok() {
+                    Some(log) => Some(Liveness::LivenessEvents::AddRollup(log.inner.data).into()),
+                    None => None,
+                }
+            }
+            Some(&Liveness::RegisterRollupExecutor::SIGNATURE_HASH) => {
+                match log.log_decode::<Liveness::RegisterRollupExecutor>().ok() {
+                    Some(log) => Some(
+                        Liveness::LivenessEvents::RegisterRollupExecutor(log.inner.data).into(),
+                    ),
                     None => None,
                 }
             }
