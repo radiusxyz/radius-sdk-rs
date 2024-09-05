@@ -226,6 +226,7 @@ impl Publisher {
         &self,
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
+        chain_type: impl AsRef<str>,
         rollup_owner_address: impl AsRef<str>,
         order_commitment_type: impl AsRef<str>,
         validation_info: ValidationInfo,
@@ -243,6 +244,7 @@ impl Publisher {
         let contract_call = self.liveness_contract.addRollup(
             cluster_id.as_ref().to_string(),
             rollup_id.as_ref().to_string(),
+            chain_type.as_ref().to_string(),
             rollup_owner_address,
             order_commitment_type.as_ref().to_string(),
             validation_info,
