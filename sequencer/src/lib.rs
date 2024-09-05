@@ -7,7 +7,7 @@ pub use json_rpc;
 #[cfg(any(feature = "full", feature = "kvstore"))]
 pub use kvstore;
 #[cfg(feature = "liveness-radius")]
-pub use liveness_evm;
+pub use liveness_radius;
 #[cfg(feature = "signature")]
 pub use signature;
 #[cfg(feature = "validation-eigenlayer")]
