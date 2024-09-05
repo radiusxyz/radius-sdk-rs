@@ -8,7 +8,7 @@ block-commitment = { path = "../sdk/block-commitment", optional = true }
 context = { path = "../sdk/context", optional = true }
 json-rpc = { path = "../sdk/json-rpc", optional = true }
 kvstore = { path = "../sdk/kvstore", optional = true }
-liveness-evm = { path = "../sdk/liveness-evm", default-features = false, optional = true }
+liveness-radius = { path = "../sdk/liveness-radius", default-features = false, optional = true }
 signature = { path = "../sdk/signature", optional = true }
 validation-eigenlayer = { path = "../sdk/validation-eigenlayer", default-features = false, optional = true }
 
@@ -17,6 +17,6 @@ full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "dep:kvstore"]
 context = ["dep:context"]
 json-rpc = ["dep:json-rpc"]
 kvstore = ["dep:kvstore"]
-liveness-evm = ["dep:liveness-evm"]
+liveness-radius = ["dep:liveness-radius"]
 signature = ["dep:signature"]
 validation-eigenlayer = ["dep:validation-eigenlayer"]
