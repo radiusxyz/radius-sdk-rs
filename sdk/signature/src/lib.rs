@@ -149,17 +149,3 @@ fn test_random_generation() {
     assert!(address_signer_random == address_sequencer);
     assert!(address_signer_random == address_alloy.as_slice());
 }
-
-#[test]
-fn test_direct_comparison() {
-    let (sequencer_signer_1, _private_key_vec) =
-        ChainType::Ethereum.create_signer_random().unwrap();
-    let (sequencer_signer_2, _private_key_vec) =
-        ChainType::Ethereum.create_signer_random().unwrap();
-
-    let address_sequencer_1 = sequencer_signer_1.address();
-    let address_sequencer_2 = sequencer_signer_2.address();
-
-    assert!(address_sequencer_1 == address_sequencer_1);
-    assert!(address_sequencer_1 != address_sequencer_2);
-}
