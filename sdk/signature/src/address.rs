@@ -20,18 +20,18 @@ impl std::cmp::PartialEq<[u8]> for Address {
     }
 }
 
-impl std::cmp::PartialEq<Self> for Address {
-    fn eq(&self, other: &Self) -> bool {
-        self.address == other.address
-    }
-}
-
 impl std::fmt::Debug for Address {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.chain_type {
             ChainType::Bitcoin => write!(f, "{:?}", self.address),
             ChainType::Ethereum => fmt_hex_string(f, &self.address),
         }
+    }
+}
+
+impl AsRef<[u8]> for Address {
+    fn as_ref(&self) -> &[u8] {
+        self.address.as_slice()
     }
 }
 
