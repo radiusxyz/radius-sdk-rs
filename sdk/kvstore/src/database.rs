@@ -121,6 +121,60 @@ impl KvStore {
         Ok(locked_value)
     }
 
+    /// Get the mutable value or return `V::default()`.
+    pub fn get_mut_or_default<K, V>(&self, key: &K) -> Result<Lock<V>, KvStoreError>
+    where
+        K: Debug + Serialize,
+        V: Debug + Default + DeserializeOwned + Serialize,
+    {
+        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
+            type_name: type_name::<K>(),
+            data: format!("{:?}", key),
+            error,
+        })?;
+
+        let transaction = self.database.transaction();
+        let value_vec = transaction
+            .get_for_update(&key_vec, true)
+            .map_err(KvStoreError::GetMut)?;
+
+        match value_vec {
+            Some(value_vec) => {
+                let value: V = bincode::deserialize(&value_vec).map_err(|error| {
+                    KvStoreError::Deserialize {
+                        type_name: type_name::<V>(),
+                        error,
+                    }
+                })?;
+                let locked_value = Lock::new(Some(transaction), key_vec, value);
+
+                Ok(locked_value)
+            }
+            None => {
+                let value = V::default();
+                let value_vec =
+                    bincode::serialize(&value).map_err(|error| KvStoreError::Serialize {
+                        type_name: type_name::<V>(),
+                        data: format!("{:?}", value),
+                        error,
+                    })?;
+                transaction
+                    .put(&key_vec, value_vec)
+                    .map_err(KvStoreError::Put)?;
+                transaction.commit().map_err(KvStoreError::CommitPut)?;
+
+                let transaction = self.database.transaction();
+                transaction
+                    .get_for_update(&key_vec, true)
+                    .map_err(KvStoreError::GetMut)?;
+
+                let locked_value = Lock::new(Some(transaction), key_vec, value);
+
+                Ok(locked_value)
+            }
+        }
+    }
+
     pub fn put<K, V>(&self, key: &K, value: &V) -> Result<(), KvStoreError>
     where
         K: Debug + Serialize,
