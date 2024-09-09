@@ -107,6 +107,7 @@ impl KvStore {
         })?;
 
         let transaction = self.database.transaction();
+
         let value_vec = transaction
             .get_for_update(&key_vec, true)
             .map_err(KvStoreError::GetMut)?
@@ -116,12 +117,17 @@ impl KvStore {
                 type_name: type_name::<V>(),
                 error,
             })?;
+
         let locked_value = Lock::new(Some(transaction), key_vec, value);
 
         Ok(locked_value)
     }
 
-    /// Get the mutable value or return `V::default()`.
+    /// Get [`Lock<V>`] or put the default value for `V` and get [`Lock<V>`] if
+    /// the key does not exist. Note that even if the key does not exist, the
+    /// returning value might not necessarily be [`V::default()`] because
+    /// internally, the operation putting [`V::default()`] and getting
+    /// [`Lock<V>`] are different transactions.
     pub fn get_mut_or_default<K, V>(&self, key: &K) -> Result<Lock<V>, KvStoreError>
     where
         K: Debug + Serialize,
@@ -137,7 +143,6 @@ impl KvStore {
         let value_vec = transaction
             .get_for_update(&key_vec, true)
             .map_err(KvStoreError::GetMut)?;
-
         match value_vec {
             Some(value_vec) => {
                 let value: V = bincode::deserialize(&value_vec).map_err(|error| {
@@ -158,21 +163,80 @@ impl KvStore {
                         data: format!("{:?}", value),
                         error,
                     })?;
+
                 transaction
                     .put(&key_vec, value_vec)
                     .map_err(KvStoreError::Put)?;
+
+                // After the `commit()`, other threads may access [`V::default`].
                 transaction.commit().map_err(KvStoreError::CommitPut)?;
 
                 let transaction = self.database.transaction();
                 transaction
                     .get_for_update(&key_vec, true)
                     .map_err(KvStoreError::GetMut)?;
-
                 let locked_value = Lock::new(Some(transaction), key_vec, value);
 
                 Ok(locked_value)
             }
         }
+    }
+
+    /// Apply the operation inside the closure and put the value.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use radius_sequencer_sdk::kvstore::{KvStore, Lock};
+    /// use serde::{Deserialize, Serialize};
+    ///
+    /// #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+    /// pub struct User {
+    ///     pub name: String,
+    ///     pub age: u8,
+    /// }
+    ///
+    /// let database = KvStore::new("database").unwrap();
+    /// database.put(&"user", &User::default()).unwrap();
+    /// database
+    ///     .apply(&"user", |value: &mut Lock<User>| {
+    ///         value.name = "User Name".to_owned();
+    ///         value.age += 1;
+    ///     })
+    ///     .unwrap();
+    ///
+    /// let user: User = database.get(&"user").unwrap();
+    /// println!("{:?}", user);
+    /// ```
+    pub fn apply<K, V, F>(&self, key: &K, operation: F) -> Result<(), KvStoreError>
+    where
+        K: Debug + Serialize,
+        V: Debug + DeserializeOwned + Serialize,
+        F: FnOnce(&mut Lock<V>),
+    {
+        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
+            type_name: type_name::<K>(),
+            data: format!("{:?}", key),
+            error,
+        })?;
+
+        let transaction = self.database.transaction();
+
+        let value_vec = transaction
+            .get_for_update(&key_vec, true)
+            .map_err(KvStoreError::GetMut)?
+            .ok_or(KvStoreError::NoneType)?;
+        let value: V =
+            bincode::deserialize(&value_vec).map_err(|error| KvStoreError::Deserialize {
+                type_name: type_name::<V>(),
+                error,
+            })?;
+
+        let mut locked_value = Lock::new(Some(transaction), key_vec, value);
+        operation(&mut locked_value);
+        locked_value.update()?;
+
+        Ok(())
     }
 
     pub fn put<K, V>(&self, key: &K, value: &V) -> Result<(), KvStoreError>
@@ -193,6 +257,7 @@ impl KvStore {
         })?;
 
         let transaction = self.database.transaction();
+
         transaction
             .put(key_vec, value_vec)
             .map_err(KvStoreError::Put)?;
@@ -212,6 +277,7 @@ impl KvStore {
         })?;
 
         let transaction = self.database.transaction();
+
         transaction.delete(key_vec).map_err(KvStoreError::Delete)?;
         transaction.commit().map_err(KvStoreError::CommitDelete)?;
 
