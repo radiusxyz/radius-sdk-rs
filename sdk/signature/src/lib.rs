@@ -10,53 +10,24 @@ pub use chain::ChainType;
 pub use error::Error;
 pub use signature::Signature;
 
-pub trait PrivateKeySigner
-where
-    Self: Sized,
-{
+pub trait PrivateKeySigner {
     fn address(&self) -> &Address;
 
     fn chain_type(&self) -> ChainType;
 
-    fn from_slice(private_key: &[u8], chain_type: ChainType) -> Result<Self, Error>;
+    fn from_slice(private_key: &[u8], chain_type: ChainType) -> Result<Self, Error>
+    where
+        Self: Sized;
 
-    fn from_str(private_key: &str, chain_type: ChainType) -> Result<Self, Error>;
+    fn from_str(private_key: &str, chain_type: ChainType) -> Result<Self, Error>
+    where
+        Self: Sized;
 
-    fn generate_random(chain_type: ChainType) -> Result<(Self, Vec<u8>), Error>;
+    fn generate_random(chain_type: ChainType) -> Result<(Self, Vec<u8>), Error>
+    where
+        Self: Sized;
 
     fn sign_message(&self, message: &[u8]) -> Result<Signature, Error>;
-}
-
-impl ChainType {
-    pub fn create_signer_from_slice(
-        self,
-        private_key: &[u8],
-    ) -> Result<impl PrivateKeySigner, Error> {
-        match self {
-            Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
-            Self::Ethereum => {
-                <ecdsa::secp256k1::PrivateKey as PrivateKeySigner>::from_slice(private_key, self)
-            }
-        }
-    }
-
-    pub fn create_signer_from_str(self, private_key: &str) -> Result<impl PrivateKeySigner, Error> {
-        match self {
-            Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
-            Self::Ethereum => {
-                <ecdsa::secp256k1::PrivateKey as PrivateKeySigner>::from_str(private_key, self)
-            }
-        }
-    }
-
-    pub fn create_signer_random(self) -> Result<(impl PrivateKeySigner, Vec<u8>), Error> {
-        match self {
-            Self::Bitcoin => Err(Error::UnsupportedChainType(ChainType::Bitcoin)),
-            Self::Ethereum => {
-                <ecdsa::secp256k1::PrivateKey as PrivateKeySigner>::generate_random(self)
-            }
-        }
-    }
 }
 
 #[test]
