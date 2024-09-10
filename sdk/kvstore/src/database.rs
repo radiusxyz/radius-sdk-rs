@@ -140,6 +140,7 @@ impl KvStore {
         })?;
 
         let transaction = self.database.transaction();
+
         let value_vec = transaction
             .get_for_update(&key_vec, true)
             .map_err(KvStoreError::GetMut)?;
@@ -172,6 +173,7 @@ impl KvStore {
                 transaction.commit().map_err(KvStoreError::CommitPut)?;
 
                 let transaction = self.database.transaction();
+
                 transaction
                     .get_for_update(&key_vec, true)
                     .map_err(KvStoreError::GetMut)?;
