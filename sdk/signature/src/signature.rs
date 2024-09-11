@@ -1,13 +1,18 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{chain::*, error::Error};
+use crate::{error::Error, platform::*};
+
+pub(crate) trait SignatureTrait {
+    fn verify_message(&self, signature: &[u8], message: &[u8], address: &[u8])
+        -> Result<(), Error>;
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Signature(Vec<u8>);
 
 impl From<&[u8]> for Signature {
     fn from(value: &[u8]) -> Self {
-        Self(value.to_vec())
+        Self(value.to_owned())
     }
 }
 
@@ -18,25 +23,16 @@ impl From<Vec<u8>> for Signature {
 }
 
 impl Signature {
-    pub fn verify_signature(
+    pub fn verify_message<T: Serialize>(
         &self,
-        message: &[u8],
-        address: &[u8],
-        chain_type: ChainType,
+        platform: Platform,
+        message: &T,
+        address: impl AsRef<[u8]>,
     ) -> Result<(), Error> {
-        match chain_type {
-            ChainType::Bitcoin => Err(Error::UnsupportedChainType(chain_type)),
-            ChainType::Ethereum => {
-                crate::ecdsa::secp256k1::verify(&self.0, message, address, chain_type)
-            }
-        }
-    }
+        let message_bytes = bincode::serialize(message).map_err(Error::SerializeMessage)?;
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        platform
+            .signature()
+            .verify_message(&self.0, &message_bytes, address.as_ref())
     }
 }

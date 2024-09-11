@@ -1,15 +1,8 @@
 #[derive(Debug)]
 pub enum Error {
-    UnsupportedChainType(crate::chain::ChainType),
-    ParsePrivateKey(crate::chain::ChainType, const_hex::FromHexError),
-    InitializePrivateKey(crate::chain::ChainType, Box<dyn std::error::Error>),
-    SignMessage(crate::chain::ChainType, Box<dyn std::error::Error>),
-    SignatureOutOfBound,
-    ParseSignature(crate::chain::ChainType, Box<dyn std::error::Error>),
-    ParseRecoveryId(crate::chain::ChainType, u8),
-    RecoverVerifyingKey(crate::chain::ChainType, Box<dyn std::error::Error>),
-    AddressMismatch(crate::chain::ChainType),
-    BytesToHexString(std::fmt::Error),
+    UnsupportedPlatform(crate::platform::Platform),
+    SerializeMessage(bincode::Error),
+    Ethereum(crate::platform::ethereum::EthereumError),
 }
 
 impl std::fmt::Display for Error {
@@ -19,3 +12,9 @@ impl std::fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl From<crate::platform::ethereum::EthereumError> for Error {
+    fn from(value: crate::platform::ethereum::EthereumError) -> Self {
+        Self::Ethereum(value)
+    }
+}

@@ -1,1 +1,1 @@
-pub mod secp256k1;
+pub(crate) mod secp256k1;

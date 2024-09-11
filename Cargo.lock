@@ -3585,6 +3585,7 @@ name = "signature"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "bincode",
  "const-hex",
  "ed25519-dalek",
  "itoa",
