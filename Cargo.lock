@@ -3585,12 +3585,14 @@ name = "signature"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "bincode",
  "const-hex",
  "ed25519-dalek",
  "itoa",
  "k256",
  "rand_core",
  "serde",
+ "serde_json",
  "sha3",
 ]
 
