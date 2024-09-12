@@ -14,7 +14,7 @@ pub use traits::*;
 
 #[test]
 fn test_address_comparison() {
-    pub fn alloy_address(signing_key: &str) -> alloy::primitives::Address {
+    pub fn get_alloy_address(signing_key: &str) -> alloy::primitives::Address {
         use std::str::FromStr;
 
         use alloy::signers::local::LocalSigner;
@@ -26,7 +26,7 @@ fn test_address_comparison() {
         signer_address
     }
 
-    pub fn sequencer_address(signing_key: &str) -> Address {
+    pub fn get_sequencer_address(signing_key: &str) -> Address {
         let signer = PrivateKeySigner::from_str(Platform::Ethereum, signing_key).unwrap();
         let signer_address = signer.address().clone();
         println!("Sequencer address: {}", signer_address);
@@ -36,9 +36,16 @@ fn test_address_comparison() {
 
     let signing_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-    let address_alloy = alloy_address(signing_key);
-    let address_sequencer = sequencer_address(signing_key);
-    assert!(address_sequencer == address_alloy);
+    let alloy_address = get_alloy_address(signing_key);
+    let sequencer_address = get_sequencer_address(signing_key);
+
+    assert!(sequencer_address == alloy_address);
+
+    let parsed_address =
+        Address::from_str(Platform::Ethereum, &format!("{}", alloy_address)).unwrap();
+    println!("{}", parsed_address);
+
+    assert!(parsed_address == alloy_address);
 }
 
 #[test]
