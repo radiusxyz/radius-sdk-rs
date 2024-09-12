@@ -1,4 +1,4 @@
-use crate::{error::Error, signature::Signature};
+use crate::{address::Address, error::Error, signature::Signature};
 
 pub trait Builder {
     type Output;
@@ -9,6 +9,8 @@ pub trait Builder {
 }
 
 pub trait Signer {
+    fn address(&self) -> &Address;
+
     fn sign_message(&self, message: &[u8]) -> Result<Signature, Error>;
 }
 

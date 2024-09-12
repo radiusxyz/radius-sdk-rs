@@ -3592,6 +3592,7 @@ dependencies = [
  "k256",
  "rand_core",
  "serde",
+ "serde_json",
  "sha3",
 ]
 
