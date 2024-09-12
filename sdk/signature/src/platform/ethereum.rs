@@ -39,7 +39,7 @@ pub struct EthereumAddressBuilder;
 impl crate::Builder for EthereumAddressBuilder {
     type Output = crate::Address;
 
-    fn from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::Error> {
+    fn build_from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::Error> {
         let mut hasher = Keccak256::new();
         hasher.update(&slice[1..]);
         let output = hasher.finalize_reset()[12..].to_vec();
@@ -47,7 +47,7 @@ impl crate::Builder for EthereumAddressBuilder {
         Ok(output.into())
     }
 
-    fn from_str(&self, str: &str) -> Result<Self::Output, crate::Error> {
+    fn build_from_str(&self, str: &str) -> Result<Self::Output, crate::Error> {
         let output = const_hex::decode(str).unwrap();
 
         Ok(output.into())
@@ -59,11 +59,11 @@ pub struct EthereumSignerBuilder;
 impl crate::Builder for EthereumSignerBuilder {
     type Output = crate::PrivateKeySigner;
 
-    fn from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::Error> {
+    fn build_from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::Error> {
         Ok(EthereumSigner::from_slice(slice)?.into())
     }
 
-    fn from_str(&self, str: &str) -> Result<Self::Output, crate::Error> {
+    fn build_from_str(&self, str: &str) -> Result<Self::Output, crate::Error> {
         let signing_key =
             const_hex::decode_to_array::<_, 32>(str).map_err(EthereumError::ParseSigningKeyStr)?;
 
@@ -107,7 +107,7 @@ impl EthereumSigner {
             .verifying_key()
             .as_affine()
             .to_encoded_point(false);
-        let address = <EthereumAddressBuilder as crate::Builder>::from_slice(
+        let address = <EthereumAddressBuilder as crate::Builder>::build_from_slice(
             &EthereumAddressBuilder,
             public_key.as_bytes(),
         )?;
@@ -145,7 +145,7 @@ impl crate::Verifier for EthereumVerifier {
                 .as_affine()
                 .to_encoded_point(false);
 
-        let parsed_address = <EthereumAddressBuilder as crate::Builder>::from_slice(
+        let parsed_address = <EthereumAddressBuilder as crate::Builder>::build_from_slice(
             &EthereumAddressBuilder,
             public_key.as_bytes(),
         )?;

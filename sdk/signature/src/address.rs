@@ -25,10 +25,22 @@ impl From<Vec<u8>> for Address {
 
 impl Address {
     pub fn from_slice(platform: Platform, slice: &[u8]) -> Result<Self, Error> {
-        platform.address_builder().from_slice(slice)
+        platform.address_builder().build_from_slice(slice)
     }
 
     pub fn from_str(platform: Platform, str: &str) -> Result<Self, Error> {
-        platform.address_builder().from_str(str)
+        platform.address_builder().build_from_str(str)
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    // pub fn to_hex_string(&self) -> String {
+    //     self.0.iter().try_for_each(|byte| )
+    // }
 }
