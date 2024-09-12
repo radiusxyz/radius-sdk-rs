@@ -30,4 +30,16 @@ impl Signature {
             .verifier()
             .verify_message(&self.0, &message_bytes, address.as_ref())
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_slice()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
