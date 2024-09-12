@@ -1,11 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Error, platform::*};
-
-pub(crate) trait SignatureTrait {
-    fn verify_message(&self, signature: &[u8], message: &[u8], address: &[u8])
-        -> Result<(), Error>;
-}
+use crate::{error::Error, platform::*, Verifier};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Signature(Vec<u8>);
@@ -32,7 +27,7 @@ impl Signature {
         let message_bytes = bincode::serialize(message).map_err(Error::SerializeMessage)?;
 
         platform
-            .signature()
+            .verifier()
             .verify_message(&self.0, &message_bytes, address.as_ref())
     }
 }

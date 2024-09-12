@@ -5,6 +5,7 @@ edition = "2021"
 
 [dev-dependencies]
 alloy = { version = "0.2", features = ["signer-local"] }
+serde_json = { workspace = true }
 
 [dependencies]
 bincode = { workspace = true }

@@ -1,32 +1,16 @@
 use std::sync::Arc;
 
-use serde::Serialize;
+use crate::{error::Error, platform::Platform, traits::*};
 
-use crate::{address::Address, error::Error, platform::Platform};
-
-pub trait SignerTrait {
-    fn from_slice(&self, slice: &[u8]) -> Result<Signer, Error>
-    where
-        Self: Sized;
-
-    fn from_str(&self, str: &str) -> Result<Signer, Error>
-    where
-        Self: Sized;
+pub struct PrivateKeySigner {
+    inner: Arc<dyn Signer>,
 }
 
-pub struct Signer {
-    inner: Arc<SignerInner>,
-}
+unsafe impl Send for PrivateKeySigner {}
 
-struct SignerInner {
-    address: Address,
-}
+unsafe impl Sync for PrivateKeySigner {}
 
-unsafe impl Send for Signer {}
-
-unsafe impl Sync for Signer {}
-
-impl Clone for Signer {
+impl Clone for PrivateKeySigner {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -34,19 +18,25 @@ impl Clone for Signer {
     }
 }
 
-// impl Signer {
-//     pub fn from_slice(platform: Platform, signing_key: &[u8]) {}
+impl<T> From<T> for PrivateKeySigner
+where
+    T: Signer + 'static,
+{
+    fn from(value: T) -> Self {
+        Self {
+            inner: Arc::new(value),
+        }
+    }
+}
 
-//     pub fn from_str(platform: Platform, signing_key: &str) {}
+impl PrivateKeySigner {
+    pub fn from_slice(platform: Platform, private_key: &[u8]) -> Result<Self, Error> {
+        platform.signer_builder().from_slice(private_key)
+    }
 
-//     pub fn address(&self) -> Address {
-//         self.inner.address().into()
-//     }
+    pub fn from_str(platform: Platform, private_key: &str) -> Result<Self, Error> {
+        platform.signer_builder().from_str(private_key)
+    }
 
-//     pub fn sign_message<T: Serialize>(&self, message: &T) -> Result<(),
-// Error> {         let message_bytes = bincode::serialize(message).unwrap();
-//         self.inner.sign_message(&message_bytes).unwrap();
-
-//         Ok(())
-//     }
-// }
+    // pub fn sign_message(&self) -> Result<Signature, Error> {}
+}

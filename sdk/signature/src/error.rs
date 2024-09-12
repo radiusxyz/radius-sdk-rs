@@ -1,6 +1,5 @@
 #[derive(Debug)]
 pub enum Error {
-    UnsupportedPlatform(crate::platform::Platform),
     SerializeMessage(bincode::Error),
     Ethereum(crate::platform::ethereum::EthereumError),
 }
