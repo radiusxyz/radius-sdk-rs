@@ -40,7 +40,7 @@ pub struct EthereumAddressBuilder;
 impl crate::Builder for EthereumAddressBuilder {
     type Output = crate::Address;
 
-    fn build_from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::Error> {
+    fn build_from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::SignatureError> {
         let mut hasher = Keccak256::new();
         hasher.update(&slice[1..]);
         let output = hasher.finalize_reset()[12..].to_vec();
@@ -48,7 +48,7 @@ impl crate::Builder for EthereumAddressBuilder {
         Ok(output.into())
     }
 
-    fn build_from_str(&self, str: &str) -> Result<Self::Output, crate::Error> {
+    fn build_from_str(&self, str: &str) -> Result<Self::Output, crate::SignatureError> {
         let output = const_hex::decode(str).unwrap();
 
         Ok(output.into())
@@ -60,11 +60,11 @@ pub struct EthereumSignerBuilder;
 impl crate::Builder for EthereumSignerBuilder {
     type Output = crate::PrivateKeySigner;
 
-    fn build_from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::Error> {
+    fn build_from_slice(&self, slice: &[u8]) -> Result<Self::Output, crate::SignatureError> {
         Ok(EthereumSigner::from_slice(slice)?.into())
     }
 
-    fn build_from_str(&self, str: &str) -> Result<Self::Output, crate::Error> {
+    fn build_from_str(&self, str: &str) -> Result<Self::Output, crate::SignatureError> {
         let signing_key =
             const_hex::decode_to_array::<_, 32>(str).map_err(EthereumError::ParseSigningKeyStr)?;
 
@@ -75,7 +75,7 @@ impl crate::Builder for EthereumSignerBuilder {
 impl crate::RandomBuilder for EthereumSignerBuilder {
     type Output = (crate::PrivateKeySigner, String);
 
-    fn build_from_random(&self) -> Result<Self::Output, crate::Error> {
+    fn build_from_random(&self) -> Result<Self::Output, crate::SignatureError> {
         let (signer, private_key_random) = EthereumSigner::from_random()?;
 
         Ok((signer.into(), private_key_random))
@@ -92,7 +92,7 @@ impl crate::Signer for EthereumSigner {
         &self.address
     }
 
-    fn sign_message(&self, message: &[u8]) -> Result<crate::Signature, crate::Error> {
+    fn sign_message(&self, message: &[u8]) -> Result<crate::Signature, crate::SignatureError> {
         let message = eip191_hash_message(message);
 
         let (signature, recovery_id) = self
@@ -111,7 +111,7 @@ impl crate::Signer for EthereumSigner {
 }
 
 impl EthereumSigner {
-    pub fn from_slice(signing_key_slice: &[u8]) -> Result<Self, crate::Error> {
+    pub fn from_slice(signing_key_slice: &[u8]) -> Result<Self, crate::SignatureError> {
         let signing_key =
             SigningKey::from_slice(signing_key_slice).map_err(EthereumError::ParseSigningKey)?;
         let public_key = signing_key
@@ -129,7 +129,7 @@ impl EthereumSigner {
         })
     }
 
-    pub fn from_random() -> Result<(Self, String), crate::Error> {
+    pub fn from_random() -> Result<(Self, String), crate::SignatureError> {
         let signing_key = SigningKey::random(&mut OsRng);
         let signing_key_hex_string = const_hex::encode_prefixed(signing_key.to_bytes());
         let public_key = signing_key
@@ -158,7 +158,7 @@ impl crate::Verifier for EthereumVerifier {
         signature: &[u8],
         message: &[u8],
         address: &[u8],
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), crate::SignatureError> {
         if signature.len() != 65 {
             return Err(EthereumError::InvalidSignatureLength(signature.len()))?;
         }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::Error, platform::*, Verifier};
+use crate::{error::SignatureError, platform::*, Verifier};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Signature(Vec<u8>);
@@ -23,8 +23,9 @@ impl Signature {
         platform: Platform,
         message: &T,
         address: impl AsRef<[u8]>,
-    ) -> Result<(), Error> {
-        let message_bytes = bincode::serialize(message).map_err(Error::SerializeMessage)?;
+    ) -> Result<(), SignatureError> {
+        let message_bytes =
+            bincode::serialize(message).map_err(SignatureError::SerializeMessage)?;
 
         platform
             .verifier()

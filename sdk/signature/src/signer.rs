@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use serde::Serialize;
 
-use crate::{address::Address, error::Error, platform::Platform, signature::Signature, traits::*};
+use crate::{
+    address::Address, error::SignatureError, platform::Platform, signature::Signature, traits::*,
+};
 
 pub struct PrivateKeySigner {
     inner: Arc<dyn Signer>,
@@ -32,15 +34,15 @@ where
 }
 
 impl PrivateKeySigner {
-    pub fn from_slice(platform: Platform, private_key: &[u8]) -> Result<Self, Error> {
+    pub fn from_slice(platform: Platform, private_key: &[u8]) -> Result<Self, SignatureError> {
         platform.signer_builder().build_from_slice(private_key)
     }
 
-    pub fn from_str(platform: Platform, private_key: &str) -> Result<Self, Error> {
+    pub fn from_str(platform: Platform, private_key: &str) -> Result<Self, SignatureError> {
         platform.signer_builder().build_from_str(private_key)
     }
 
-    pub fn from_random(platform: Platform) -> Result<(Self, String), Error> {
+    pub fn from_random(platform: Platform) -> Result<(Self, String), SignatureError> {
         platform.signer_builder_random().build_from_random()
     }
 
@@ -48,11 +50,12 @@ impl PrivateKeySigner {
         self.inner.address()
     }
 
-    pub fn sign_message<T>(&self, message: T) -> Result<Signature, Error>
+    pub fn sign_message<T>(&self, message: T) -> Result<Signature, SignatureError>
     where
         T: Serialize,
     {
-        let message_bytes = bincode::serialize(&message).map_err(Error::SerializeMessage)?;
+        let message_bytes =
+            bincode::serialize(&message).map_err(SignatureError::SerializeMessage)?;
 
         self.inner.sign_message(&message_bytes)
     }

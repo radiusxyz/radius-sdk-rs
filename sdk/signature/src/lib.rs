@@ -6,7 +6,7 @@ mod signer;
 mod traits;
 
 pub use address::Address;
-pub use error::Error;
+pub use error::SignatureError;
 pub use platform::Platform;
 pub use signature::Signature;
 pub use signer::PrivateKeySigner;
