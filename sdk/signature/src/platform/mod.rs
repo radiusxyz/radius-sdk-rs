@@ -1,10 +1,12 @@
 pub(crate) mod ethereum;
 
+use std::hash::Hash;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{address::Address, signer::PrivateKeySigner, traits::*};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Platform {
     Ethereum,
