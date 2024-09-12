@@ -8,6 +8,12 @@ pub trait Builder {
     fn build_from_str(&self, str: &str) -> Result<Self::Output, Error>;
 }
 
+pub trait RandomBuilder {
+    type Output;
+
+    fn build_from_random(&self) -> Result<Self::Output, Error>;
+}
+
 pub trait Signer {
     fn address(&self) -> &Address;
 

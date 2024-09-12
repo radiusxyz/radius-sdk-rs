@@ -40,6 +40,10 @@ impl PrivateKeySigner {
         platform.signer_builder().build_from_str(private_key)
     }
 
+    pub fn from_random(platform: Platform) -> Result<(Self, String), Error> {
+        platform.signer_builder_random().build_from_random()
+    }
+
     pub fn address(&self) -> &Address {
         self.inner.address()
     }

@@ -23,6 +23,14 @@ impl Platform {
         }
     }
 
+    pub(crate) fn signer_builder_random(
+        &self,
+    ) -> impl RandomBuilder<Output = (PrivateKeySigner, String)> {
+        match self {
+            Self::Ethereum => ethereum::EthereumSignerBuilder,
+        }
+    }
+
     pub(crate) fn verifier(&self) -> impl Verifier {
         match self {
             Self::Ethereum => ethereum::EthereumVerifier,

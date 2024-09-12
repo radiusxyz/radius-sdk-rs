@@ -2,6 +2,7 @@ use k256::{
     ecdsa::{RecoveryId, Signature, SigningKey, VerifyingKey},
     elliptic_curve::sec1::ToEncodedPoint,
 };
+use rand_core::OsRng;
 use sha3::{Digest, Keccak256};
 
 pub const EIP191_PREFIX: &str = "\x19Ethereum Signed Message:\n";
@@ -71,6 +72,16 @@ impl crate::Builder for EthereumSignerBuilder {
     }
 }
 
+impl crate::RandomBuilder for EthereumSignerBuilder {
+    type Output = (crate::PrivateKeySigner, String);
+
+    fn build_from_random(&self) -> Result<Self::Output, crate::Error> {
+        let (signer, private_key_random) = EthereumSigner::from_random()?;
+
+        Ok((signer.into(), private_key_random))
+    }
+}
+
 pub struct EthereumSigner {
     signing_key: SigningKey,
     address: crate::Address,
@@ -116,6 +127,26 @@ impl EthereumSigner {
             signing_key,
             address,
         })
+    }
+
+    pub fn from_random() -> Result<(Self, String), crate::Error> {
+        let signing_key = SigningKey::random(&mut OsRng);
+        let signing_key_hex_string = const_hex::encode_prefixed(signing_key.to_bytes());
+        let public_key = signing_key
+            .verifying_key()
+            .as_affine()
+            .to_encoded_point(false);
+        let address = <EthereumAddressBuilder as crate::Builder>::build_from_slice(
+            &EthereumAddressBuilder,
+            public_key.as_bytes(),
+        )?;
+
+        let signer = Self {
+            signing_key,
+            address,
+        };
+
+        Ok((signer, signing_key_hex_string))
     }
 }
 

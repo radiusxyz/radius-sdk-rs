@@ -96,3 +96,21 @@ fn test_signature_verification() {
     let signing_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
     verify_signature(signing_key, &user);
 }
+
+#[test]
+fn test_random() {
+    use std::str::FromStr;
+
+    use alloy::signers::local::LocalSigner;
+
+    let (sequencer_signer, private_key_string) =
+        PrivateKeySigner::from_random(Platform::Ethereum).unwrap();
+    let sequencer_address = sequencer_signer.address();
+    println!("Sequencer address: {}", sequencer_address);
+
+    let alloy_signer = LocalSigner::from_str(&private_key_string).unwrap();
+    let alloy_address = alloy_signer.address();
+    println!("Alloy address: {:?}", alloy_address);
+
+    assert!(*sequencer_address == alloy_address);
+}
