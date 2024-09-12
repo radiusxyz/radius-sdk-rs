@@ -41,9 +41,8 @@ fn test_address_comparison() {
 
     assert!(sequencer_address == alloy_address);
 
-    let parsed_address =
-        Address::from_str(Platform::Ethereum, &format!("{}", alloy_address)).unwrap();
-    println!("{}", parsed_address);
+    let parsed_address = Address::from_str(Platform::Ethereum, &alloy_address.to_string()).unwrap();
+    println!("Parsed address: {}", parsed_address);
 
     assert!(parsed_address == alloy_address);
 }
@@ -55,6 +54,7 @@ fn test_signature_verification() {
 
         use alloy::signers::{local::LocalSigner, SignerSync};
 
+        // Alloy
         let alloy_signer = LocalSigner::from_str(signing_key).unwrap();
         let alloy_address = alloy_signer.address();
         let message_serialized = bincode::serialize(message).unwrap();
@@ -65,6 +65,7 @@ fn test_signature_verification() {
             alloy_signature.as_bytes()
         );
 
+        // SDK
         let sequencer_signer = PrivateKeySigner::from_str(Platform::Ethereum, signing_key).unwrap();
         let sequencer_signature = sequencer_signer.sign_message(message).unwrap();
         println!(
