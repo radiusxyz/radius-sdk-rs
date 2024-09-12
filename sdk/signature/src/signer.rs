@@ -32,16 +32,16 @@ where
 }
 
 impl PrivateKeySigner {
-    pub fn address(&self) -> &Address {
-        self.inner.address()
-    }
-
     pub fn from_slice(platform: Platform, private_key: &[u8]) -> Result<Self, Error> {
         platform.signer_builder().build_from_slice(private_key)
     }
 
     pub fn from_str(platform: Platform, private_key: &str) -> Result<Self, Error> {
         platform.signer_builder().build_from_str(private_key)
+    }
+
+    pub fn address(&self) -> &Address {
+        self.inner.address()
     }
 
     pub fn sign_message<T>(&self, message: T) -> Result<Signature, Error>
