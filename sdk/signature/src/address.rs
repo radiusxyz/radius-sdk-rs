@@ -3,7 +3,15 @@ use serde::{Deserialize, Serialize};
 use crate::{error::SignatureError, platform::*, Builder};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(try_from = "AddressType")]
 pub struct Address(Vec<u8>);
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+enum AddressType {
+    Array(Vec<u8>),
+    String(String),
+}
 
 /// Print the address as a hexadecimal string.
 impl std::fmt::Display for Address {
@@ -29,6 +37,22 @@ impl AsRef<[u8]> for Address {
 impl From<Vec<u8>> for Address {
     fn from(value: Vec<u8>) -> Self {
         Self(value)
+    }
+}
+
+impl TryFrom<AddressType> for Address {
+    type Error = SignatureError;
+
+    fn try_from(value: AddressType) -> Result<Self, Self::Error> {
+        match value {
+            AddressType::Array(address) => Ok(Self(address)),
+            AddressType::String(address) => {
+                let address =
+                    const_hex::decode(address).map_err(SignatureError::DeserializeAddress)?;
+
+                Ok(Self(address))
+            }
+        }
     }
 }
 

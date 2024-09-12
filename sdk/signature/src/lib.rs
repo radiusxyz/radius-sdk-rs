@@ -115,3 +115,31 @@ fn test_random() {
 
     assert!(*sequencer_address == alloy_address);
 }
+
+#[test]
+fn test_polymorphic_type_conversion() {
+    use std::str::FromStr;
+
+    use alloy::signers::local::LocalSigner;
+
+    let (sequencer_signer, private_key_string) =
+        PrivateKeySigner::from_random(Platform::Ethereum).unwrap();
+    let sequencer_address = sequencer_signer.address();
+    println!("Sequencer address: {}", sequencer_address);
+
+    let alloy_signer = LocalSigner::from_str(&private_key_string).unwrap();
+    let alloy_address = alloy_signer.address();
+    println!("Alloy address: {:?}", alloy_address);
+
+    assert!(*sequencer_address == alloy_address);
+
+    let address_string = serde_json::to_string(&sequencer_address.to_string()).unwrap();
+    let address_from_string: Address = serde_json::from_str(&address_string).unwrap();
+    println!("{:?}", address_from_string);
+
+    let address_array = serde_json::to_string(&sequencer_address).unwrap();
+    let address_from_array: Address = serde_json::from_str(&address_array).unwrap();
+    println!("{:?}", address_from_array);
+
+    assert!(address_from_string == address_from_array);
+}
