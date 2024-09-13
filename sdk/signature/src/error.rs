@@ -2,7 +2,7 @@
 pub enum SignatureError {
     DeserializeAddress(const_hex::FromHexError),
     SerializeMessage(bincode::Error),
-    Ethereum(crate::platform::ethereum::EthereumError),
+    Ethereum(crate::chain_type::ethereum::EthereumError),
 }
 
 impl std::fmt::Display for SignatureError {
@@ -13,8 +13,8 @@ impl std::fmt::Display for SignatureError {
 
 impl std::error::Error for SignatureError {}
 
-impl From<crate::platform::ethereum::EthereumError> for SignatureError {
-    fn from(value: crate::platform::ethereum::EthereumError) -> Self {
+impl From<crate::chain_type::ethereum::EthereumError> for SignatureError {
+    fn from(value: crate::chain_type::ethereum::EthereumError) -> Self {
         Self::Ethereum(value)
     }
 }

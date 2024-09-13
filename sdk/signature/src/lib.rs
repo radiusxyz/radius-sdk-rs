@@ -1,13 +1,13 @@
 mod address;
+mod chain_type;
 mod error;
-mod platform;
 mod signature;
 mod signer;
 mod traits;
 
 pub use address::Address;
+pub use chain_type::ChainType;
 pub use error::SignatureError;
-pub use platform::Platform;
 pub use signature::Signature;
 pub use signer::PrivateKeySigner;
 pub use traits::*;
@@ -27,7 +27,7 @@ fn test_address_comparison() {
     }
 
     pub fn get_sequencer_address(signing_key: &str) -> Address {
-        let signer = PrivateKeySigner::from_str(Platform::Ethereum, signing_key).unwrap();
+        let signer = PrivateKeySigner::from_str(ChainType::Ethereum, signing_key).unwrap();
         let signer_address = signer.address().clone();
         println!("Sequencer address: {}", signer_address);
 
@@ -41,7 +41,8 @@ fn test_address_comparison() {
 
     assert!(sequencer_address == alloy_address);
 
-    let parsed_address = Address::from_str(Platform::Ethereum, &alloy_address.to_string()).unwrap();
+    let parsed_address =
+        Address::from_str(ChainType::Ethereum, &alloy_address.to_string()).unwrap();
     println!("Parsed address: {}", parsed_address);
 
     assert!(parsed_address == alloy_address);
@@ -66,7 +67,8 @@ fn test_signature_verification() {
         );
 
         // SDK
-        let sequencer_signer = PrivateKeySigner::from_str(Platform::Ethereum, signing_key).unwrap();
+        let sequencer_signer =
+            PrivateKeySigner::from_str(ChainType::Ethereum, signing_key).unwrap();
         let sequencer_signature = sequencer_signer.sign_message(message).unwrap();
         println!(
             "Sequencer signature (len: {}): {:?}",
@@ -83,7 +85,7 @@ fn test_signature_verification() {
             parsed_signature.as_bytes(),
         );
         parsed_signature
-            .verify_message(Platform::Ethereum, message, alloy_address)
+            .verify_message(ChainType::Ethereum, message, alloy_address)
             .unwrap();
     }
 
@@ -105,7 +107,7 @@ fn test_random() {
     use alloy::signers::local::LocalSigner;
 
     let (sequencer_signer, private_key_string) =
-        PrivateKeySigner::from_random(Platform::Ethereum).unwrap();
+        PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
     let sequencer_address = sequencer_signer.address();
     println!("Sequencer address: {}", sequencer_address);
 
@@ -123,7 +125,7 @@ fn test_polymorphic_type_conversion() {
     use alloy::signers::local::LocalSigner;
 
     let (sequencer_signer, private_key_string) =
-        PrivateKeySigner::from_random(Platform::Ethereum).unwrap();
+        PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
     let sequencer_address = sequencer_signer.address();
     println!("Sequencer address: {}", sequencer_address);
 

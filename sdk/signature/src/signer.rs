@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::Serialize;
 
 use crate::{
-    address::Address, error::SignatureError, platform::Platform, signature::Signature, traits::*,
+    address::Address, chain_type::ChainType, error::SignatureError, signature::Signature, traits::*,
 };
 
 pub struct PrivateKeySigner {
@@ -34,15 +34,15 @@ where
 }
 
 impl PrivateKeySigner {
-    pub fn from_slice(platform: Platform, private_key: &[u8]) -> Result<Self, SignatureError> {
+    pub fn from_slice(platform: ChainType, private_key: &[u8]) -> Result<Self, SignatureError> {
         platform.signer_builder().build_from_slice(private_key)
     }
 
-    pub fn from_str(platform: Platform, private_key: &str) -> Result<Self, SignatureError> {
+    pub fn from_str(platform: ChainType, private_key: &str) -> Result<Self, SignatureError> {
         platform.signer_builder().build_from_str(private_key)
     }
 
-    pub fn from_random(platform: Platform) -> Result<(Self, String), SignatureError> {
+    pub fn from_random(platform: ChainType) -> Result<(Self, String), SignatureError> {
         platform.signer_builder_random().build_from_random()
     }
 

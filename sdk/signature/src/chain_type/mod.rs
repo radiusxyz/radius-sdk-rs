@@ -8,11 +8,11 @@ use crate::{address::Address, signer::PrivateKeySigner, traits::*};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Platform {
+pub enum ChainType {
     Ethereum,
 }
 
-impl Platform {
+impl ChainType {
     pub(crate) fn address_builder(&self) -> impl Builder<Output = Address> {
         match self {
             Self::Ethereum => ethereum::EthereumAddressBuilder,

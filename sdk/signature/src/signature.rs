@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{error::SignatureError, platform::*, Verifier};
+use crate::{chain_type::*, error::SignatureError, Verifier};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Signature(Vec<u8>);
@@ -20,7 +20,7 @@ impl From<Vec<u8>> for Signature {
 impl Signature {
     pub fn verify_message<T: Serialize>(
         &self,
-        platform: Platform,
+        platform: ChainType,
         message: &T,
         address: impl AsRef<[u8]>,
     ) -> Result<(), SignatureError> {
