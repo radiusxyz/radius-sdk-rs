@@ -7,3 +7,4 @@ edition = "2021"
 bincode = { workspace = true }
 rocksdb = "0.22"
 serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["sync"] }
