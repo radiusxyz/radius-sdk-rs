@@ -112,11 +112,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| CachedKvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let database = self.inner.lock().await;
         let value = downcast::<V>(database, key_vec)?;
@@ -144,11 +140,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| CachedKvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let database = self.inner.lock().await;
         let value = downcast::<V>(database, key_vec)?;
