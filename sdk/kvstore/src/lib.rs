@@ -1,7 +1,5 @@
-mod database;
-mod error;
-mod singleton;
+mod in_memory;
+mod on_disk;
 
-pub use database::{KvStore, Lock};
-pub use error::KvStoreError;
-pub use singleton::*;
+pub use in_memory::{CachedKvStore, CachedKvStoreError, Value};
+pub use on_disk::{kvstore, KvStore, KvStoreError, Lock};

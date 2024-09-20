@@ -1,9 +1,55 @@
-use std::{any::type_name, fmt::Debug, path::Path, sync::Arc};
+use std::{
+    any::type_name,
+    fmt::Debug,
+    mem::MaybeUninit,
+    path::Path,
+    sync::{Arc, Once},
+};
 
 use rocksdb::{Options, Transaction, TransactionDB, TransactionDBOptions};
 use serde::{de::DeserializeOwned, ser::Serialize};
 
-use crate::error::KvStoreError;
+static mut KVSTORE: MaybeUninit<KvStore> = MaybeUninit::uninit();
+static INIT: Once = Once::new();
+
+pub fn kvstore() -> Result<&'static KvStore, KvStoreError> {
+    match INIT.is_completed() {
+        true => unsafe { Ok(KVSTORE.assume_init_ref()) },
+        false => Err(KvStoreError::Initialize),
+    }
+}
+
+fn serialize_key<K>(key: &K) -> Result<Vec<u8>, KvStoreError>
+where
+    K: Debug + Serialize,
+{
+    bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
+        type_name: type_name::<K>(),
+        data: format!("{:?}", key),
+        error,
+    })
+}
+
+fn serialize_value<V>(value: &V) -> Result<Vec<u8>, KvStoreError>
+where
+    V: Debug + DeserializeOwned + Serialize,
+{
+    bincode::serialize(value).map_err(|error| KvStoreError::Serialize {
+        type_name: type_name::<V>(),
+        data: format!("{:?}", value),
+        error,
+    })
+}
+
+fn deserialize_value<V>(value: impl AsRef<[u8]>) -> Result<V, KvStoreError>
+where
+    V: Debug + DeserializeOwned + Serialize,
+{
+    bincode::deserialize(value.as_ref()).map_err(|error| KvStoreError::Deserialize {
+        type_name: type_name::<V>(),
+        error,
+    })
+}
 
 pub struct KvStore {
     database: Arc<TransactionDB>,
@@ -36,29 +82,45 @@ impl KvStore {
         })
     }
 
+    pub fn init(self) {
+        unsafe {
+            INIT.call_once(|| {
+                KVSTORE.write(self);
+            });
+        }
+    }
+
+    pub fn put<K, V>(&self, key: &K, value: &V) -> Result<(), KvStoreError>
+    where
+        K: Debug + Serialize,
+        V: Debug + DeserializeOwned + Serialize,
+    {
+        let key_vec = serialize_key(key)?;
+        let value_vec = serialize_value(value)?;
+
+        let transaction = self.database.transaction();
+
+        transaction
+            .put(key_vec, value_vec)
+            .map_err(KvStoreError::Put)?;
+        transaction.commit().map_err(KvStoreError::CommitPut)?;
+
+        Ok(())
+    }
+
     pub fn get<K, V>(&self, key: &K) -> Result<V, KvStoreError>
     where
         K: Debug + Serialize,
         V: Debug + DeserializeOwned + Serialize,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let value_slice = self
             .database
             .get_pinned(key_vec)
             .map_err(KvStoreError::Get)?
             .ok_or(KvStoreError::NoneType)?;
-
-        let value: V = bincode::deserialize(value_slice.as_ref()).map_err(|error| {
-            KvStoreError::Deserialize {
-                type_name: type_name::<V>(),
-                error,
-            }
-        })?;
+        let value: V = deserialize_value(value_slice)?;
 
         Ok(value)
     }
@@ -69,11 +131,7 @@ impl KvStore {
         K: Debug + Serialize,
         V: Debug + Default + DeserializeOwned + Serialize,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let value_slice = self
             .database
@@ -81,16 +139,7 @@ impl KvStore {
             .map_err(KvStoreError::Get)?;
 
         match value_slice {
-            Some(value_slice) => {
-                let value: V = bincode::deserialize(value_slice.as_ref()).map_err(|error| {
-                    KvStoreError::Deserialize {
-                        type_name: type_name::<V>(),
-                        error,
-                    }
-                })?;
-
-                Ok(value)
-            }
+            Some(value_slice) => deserialize_value(value_slice),
             None => Ok(V::default()),
         }
     }
@@ -100,11 +149,7 @@ impl KvStore {
         K: Debug + Serialize,
         V: Debug + DeserializeOwned + Serialize,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let transaction = self.database.transaction();
 
@@ -112,12 +157,7 @@ impl KvStore {
             .get_for_update(&key_vec, true)
             .map_err(KvStoreError::GetMut)?
             .ok_or(KvStoreError::NoneType)?;
-        let value: V =
-            bincode::deserialize(&value_vec).map_err(|error| KvStoreError::Deserialize {
-                type_name: type_name::<V>(),
-                error,
-            })?;
-
+        let value: V = deserialize_value(value_vec)?;
         let locked_value = Lock::new(Some(transaction), key_vec, value);
 
         Ok(locked_value)
@@ -133,11 +173,7 @@ impl KvStore {
         K: Debug + Serialize,
         V: Debug + Default + DeserializeOwned + Serialize,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let transaction = self.database.transaction();
 
@@ -146,24 +182,14 @@ impl KvStore {
             .map_err(KvStoreError::GetMut)?;
         match value_vec {
             Some(value_vec) => {
-                let value: V = bincode::deserialize(&value_vec).map_err(|error| {
-                    KvStoreError::Deserialize {
-                        type_name: type_name::<V>(),
-                        error,
-                    }
-                })?;
+                let value: V = deserialize_value(value_vec)?;
                 let locked_value = Lock::new(Some(transaction), key_vec, value);
 
                 Ok(locked_value)
             }
             None => {
                 let value = V::default();
-                let value_vec =
-                    bincode::serialize(&value).map_err(|error| KvStoreError::Serialize {
-                        type_name: type_name::<V>(),
-                        data: format!("{:?}", value),
-                        error,
-                    })?;
+                let value_vec = serialize_value(&value)?;
 
                 transaction
                     .put(&key_vec, value_vec)
@@ -216,11 +242,7 @@ impl KvStore {
         V: Debug + DeserializeOwned + Serialize,
         F: FnOnce(&mut Lock<V>),
     {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let transaction = self.database.transaction();
 
@@ -228,11 +250,7 @@ impl KvStore {
             .get_for_update(&key_vec, true)
             .map_err(KvStoreError::GetMut)?
             .ok_or(KvStoreError::NoneType)?;
-        let value: V =
-            bincode::deserialize(&value_vec).map_err(|error| KvStoreError::Deserialize {
-                type_name: type_name::<V>(),
-                error,
-            })?;
+        let value: V = deserialize_value(value_vec)?;
 
         let mut locked_value = Lock::new(Some(transaction), key_vec, value);
         operation(&mut locked_value);
@@ -241,42 +259,11 @@ impl KvStore {
         Ok(())
     }
 
-    pub fn put<K, V>(&self, key: &K, value: &V) -> Result<(), KvStoreError>
-    where
-        K: Debug + Serialize,
-        V: Debug + DeserializeOwned + Serialize,
-    {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
-
-        let value_vec = bincode::serialize(value).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<V>(),
-            data: format!("{:?}", value),
-            error,
-        })?;
-
-        let transaction = self.database.transaction();
-
-        transaction
-            .put(key_vec, value_vec)
-            .map_err(KvStoreError::Put)?;
-        transaction.commit().map_err(KvStoreError::CommitPut)?;
-
-        Ok(())
-    }
-
     pub fn delete<K>(&self, key: &K) -> Result<(), KvStoreError>
     where
         K: Debug + Serialize,
     {
-        let key_vec = bincode::serialize(key).map_err(|error| KvStoreError::Serialize {
-            type_name: type_name::<K>(),
-            data: format!("{:?}", key),
-            error,
-        })?;
+        let key_vec = serialize_key(key)?;
 
         let transaction = self.database.transaction();
 
@@ -289,7 +276,7 @@ impl KvStore {
 
 pub struct Lock<'db, V>
 where
-    V: Debug + Serialize,
+    V: Debug + Serialize + DeserializeOwned,
 {
     transaction: Option<Transaction<'db, TransactionDB>>,
     key_vec: Vec<u8>,
@@ -298,7 +285,7 @@ where
 
 impl<'db, V> std::ops::Deref for Lock<'db, V>
 where
-    V: Debug + Serialize,
+    V: Debug + Serialize + DeserializeOwned,
 {
     type Target = V;
 
@@ -309,7 +296,7 @@ where
 
 impl<'db, V> std::ops::DerefMut for Lock<'db, V>
 where
-    V: Debug + Serialize,
+    V: Debug + Serialize + DeserializeOwned,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
@@ -318,7 +305,7 @@ where
 
 impl<'db, V> Lock<'db, V>
 where
-    V: Debug + Serialize,
+    V: Debug + Serialize + DeserializeOwned,
 {
     pub fn new(
         transaction: Option<Transaction<'db, TransactionDB>>,
@@ -334,12 +321,7 @@ where
 
     pub fn update(mut self) -> Result<(), KvStoreError> {
         if let Some(transaction) = self.transaction.take() {
-            let value_vec =
-                bincode::serialize(&self.value).map_err(|error| KvStoreError::Serialize {
-                    type_name: type_name::<V>(),
-                    data: format!("{:?}", self.value),
-                    error,
-                })?;
+            let value_vec = serialize_value(&self.value)?;
 
             transaction
                 .put(&self.key_vec, value_vec)
@@ -348,5 +330,46 @@ where
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub enum KvStoreError {
+    Open(rocksdb::Error),
+    Serialize {
+        type_name: &'static str,
+        data: String,
+        error: bincode::Error,
+    },
+    Deserialize {
+        type_name: &'static str,
+        error: bincode::Error,
+    },
+    Get(rocksdb::Error),
+    GetMut(rocksdb::Error),
+    Put(rocksdb::Error),
+    CommitPut(rocksdb::Error),
+    Delete(rocksdb::Error),
+    CommitDelete(rocksdb::Error),
+    Update(rocksdb::Error),
+    CommitUpdate(rocksdb::Error),
+    NoneType,
+    Initialize,
+}
+
+impl std::fmt::Display for KvStoreError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for KvStoreError {}
+
+impl KvStoreError {
+    pub fn is_none_type(&self) -> bool {
+        match self {
+            Self::NoneType => true,
+            _others => false,
+        }
     }
 }
