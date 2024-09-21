@@ -227,9 +227,10 @@ impl Publisher {
         &self,
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
-        chain_type: impl AsRef<str>,
+        rollup_type: impl AsRef<str>,
         rollup_owner_address: impl AsRef<str>,
         order_commitment_type: impl AsRef<str>,
+        encrypted_transaction_type: impl AsRef<str>,
         validation_info: ValidationInfo,
     ) -> Result<Liveness::AddRollup, PublisherError> {
         let rollup_owner_address =
@@ -242,14 +243,18 @@ impl Publisher {
             serviceProvider: validation_info.service_provider,
         };
 
-        let contract_call = self.liveness_contract.addRollup(
-            cluster_id.as_ref().to_string(),
-            rollup_id.as_ref().to_string(),
-            chain_type.as_ref().to_string(),
-            rollup_owner_address,
-            order_commitment_type.as_ref().to_string(),
-            validation_info,
-        );
+        let add_rollup_info: Liveness::AddRollupInfo = Liveness::AddRollupInfo {
+            rollupId: rollup_id.as_ref().to_string(),
+            owner: rollup_owner_address,
+            rollupType: rollup_type.as_ref().to_string(),
+            encryptedTransactionType: encrypted_transaction_type.as_ref().to_string(),
+            validationInfo: validation_info,
+            orderCommitmentType: order_commitment_type.as_ref().to_string(),
+        };
+
+        let contract_call = self
+            .liveness_contract
+            .addRollup(cluster_id.as_ref().to_string(), add_rollup_info);
 
         let pending_transaction = contract_call.send().await;
         let event: Liveness::AddRollup = self
