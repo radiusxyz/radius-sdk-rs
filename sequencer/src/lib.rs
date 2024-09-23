@@ -6,9 +6,9 @@ pub use context;
 pub use json_rpc;
 #[cfg(any(feature = "full", feature = "kvstore-bytes", feature = "kvstore-json"))]
 pub use kvstore;
-#[cfg(feature = "liveness-radius")]
+#[cfg(any(feature = "full", feature = "liveness-radius"))]
 pub use liveness_radius;
-#[cfg(feature = "signature")]
+#[cfg(any(feature = "full", feature = "signature"))]
 pub use signature;
-#[cfg(feature = "validation-eigenlayer")]
+#[cfg(any(feature = "full", feature = "validation-eigenlayer"))]
 pub use validation_eigenlayer;

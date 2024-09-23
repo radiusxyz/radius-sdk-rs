@@ -13,7 +13,7 @@ signature = { path = "../sdk/signature", optional = true }
 validation-eigenlayer = { path = "../sdk/validation-eigenlayer", default-features = false, optional = true }
 
 [features]
-full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "kvstore/json"]
+full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "kvstore/json", "dep:liveness-radius", "dep:signature", "dep:validation-eigenlayer"]
 context = ["dep:context"]
 json-rpc = ["dep:json-rpc"]
 kvstore-bytes = ["kvstore/bytes"]
