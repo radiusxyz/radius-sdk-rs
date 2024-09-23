@@ -57,12 +57,12 @@ impl TryFrom<AddressType> for Address {
 }
 
 impl Address {
-    pub fn from_slice(platform: ChainType, slice: &[u8]) -> Result<Self, SignatureError> {
-        platform.address_builder().build_from_slice(slice)
+    pub fn from_slice(chain_type: ChainType, slice: &[u8]) -> Result<Self, SignatureError> {
+        chain_type.address_builder().build_from_slice(slice)
     }
 
-    pub fn from_str(platform: ChainType, str: &str) -> Result<Self, SignatureError> {
-        platform.address_builder().build_from_str(str)
+    pub fn from_str(chain_type: ChainType, str: &str) -> Result<Self, SignatureError> {
+        chain_type.address_builder().build_from_str(str)
     }
 
     pub fn len(&self) -> usize {

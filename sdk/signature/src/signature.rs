@@ -20,14 +20,14 @@ impl From<Vec<u8>> for Signature {
 impl Signature {
     pub fn verify_message<T: Serialize>(
         &self,
-        platform: ChainType,
+        chain_type: ChainType,
         message: &T,
         address: impl AsRef<[u8]>,
     ) -> Result<(), SignatureError> {
         let message_bytes =
             bincode::serialize(message).map_err(SignatureError::SerializeMessage)?;
 
-        platform
+        chain_type
             .verifier()
             .verify_message(&self.0, &message_bytes, address.as_ref())
     }

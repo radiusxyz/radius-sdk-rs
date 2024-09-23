@@ -34,16 +34,16 @@ where
 }
 
 impl PrivateKeySigner {
-    pub fn from_slice(platform: ChainType, private_key: &[u8]) -> Result<Self, SignatureError> {
-        platform.signer_builder().build_from_slice(private_key)
+    pub fn from_slice(chain_type: ChainType, private_key: &[u8]) -> Result<Self, SignatureError> {
+        chain_type.signer_builder().build_from_slice(private_key)
     }
 
-    pub fn from_str(platform: ChainType, private_key: &str) -> Result<Self, SignatureError> {
-        platform.signer_builder().build_from_str(private_key)
+    pub fn from_str(chain_type: ChainType, private_key: &str) -> Result<Self, SignatureError> {
+        chain_type.signer_builder().build_from_str(private_key)
     }
 
-    pub fn from_random(platform: ChainType) -> Result<(Self, String), SignatureError> {
-        platform.signer_builder_random().build_from_random()
+    pub fn from_random(chain_type: ChainType) -> Result<(Self, String), SignatureError> {
+        chain_type.signer_builder_random().build_from_random()
     }
 
     pub fn address(&self) -> &Address {
