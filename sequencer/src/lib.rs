@@ -4,7 +4,7 @@ pub use block_commitment;
 pub use context;
 #[cfg(any(feature = "full", feature = "json-rpc"))]
 pub use json_rpc;
-#[cfg(any(feature = "full", feature = "kvstore"))]
+#[cfg(any(feature = "full", feature = "kvstore-bytes", feature = "kvstore-json"))]
 pub use kvstore;
 #[cfg(feature = "liveness-radius")]
 pub use liveness_radius;

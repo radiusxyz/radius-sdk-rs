@@ -7,16 +7,17 @@ edition = "2021"
 block-commitment = { path = "../sdk/block-commitment", optional = true }
 context = { path = "../sdk/context", optional = true }
 json-rpc = { path = "../sdk/json-rpc", optional = true }
-kvstore = { path = "../sdk/kvstore", optional = true }
+kvstore = { path = "../sdk/kvstore", optional = true, default-features = false }
 liveness-radius = { path = "../sdk/liveness-radius", default-features = false, optional = true }
 signature = { path = "../sdk/signature", optional = true }
 validation-eigenlayer = { path = "../sdk/validation-eigenlayer", default-features = false, optional = true }
 
 [features]
-full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "dep:kvstore"]
+full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "kvstore/json"]
 context = ["dep:context"]
 json-rpc = ["dep:json-rpc"]
-kvstore = ["dep:kvstore"]
+kvstore-bytes = ["kvstore/bytes"]
+kvstore-json = ["kvstore/json"]
 liveness-radius = ["dep:liveness-radius"]
 signature = ["dep:signature"]
 validation-eigenlayer = ["dep:validation-eigenlayer"]
