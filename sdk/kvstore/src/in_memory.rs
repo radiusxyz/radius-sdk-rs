@@ -8,19 +8,10 @@ use std::{
 use serde::Serialize;
 use tokio::sync::{Mutex, MutexGuard, OwnedMutexGuard};
 
+use crate::data_type::serialize;
+
 type Key = Vec<u8>;
 type ValueAny = Box<dyn Any + Send + Sync>;
-
-fn serialize_key<K>(key: &K) -> Result<Key, CachedKvStoreError>
-where
-    K: Debug + Serialize,
-{
-    bincode::serialize(key).map_err(|error| CachedKvStoreError::Serialize {
-        type_name: type_name::<K>(),
-        data: format!("{:?}", key),
-        error,
-    })
-}
 
 fn downcast<V>(
     database: MutexGuard<'_, HashMap<Key, ValueAny>>,
@@ -69,7 +60,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
         let value_any: ValueAny = Box::new(Arc::new(Mutex::new(value)));
 
         let mut database = self.inner.blocking_lock();
@@ -83,7 +74,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
         let value_any: ValueAny = Box::new(Arc::new(Mutex::new(value)));
 
         let mut database = self.inner.lock().await;
@@ -97,7 +88,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
 
         let database = self.inner.blocking_lock();
         let value = downcast::<V>(database, key_vec)?;
@@ -112,7 +103,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
 
         let database = self.inner.lock().await;
         let value = downcast::<V>(database, key_vec)?;
@@ -127,7 +118,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
 
         let database = self.inner.blocking_lock();
         let value = downcast::<V>(database, key_vec)?;
@@ -140,7 +131,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
 
         let database = self.inner.lock().await;
         let value = downcast::<V>(database, key_vec)?;
@@ -153,7 +144,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
 
         let mut database = self.inner.blocking_lock();
         database.remove(&key_vec);
@@ -166,7 +157,7 @@ impl CachedKvStore {
         K: Debug + Serialize,
         V: Clone + Any + Send + 'static,
     {
-        let key_vec = serialize_key(key)?;
+        let key_vec = serialize(key)?;
 
         let mut database = self.inner.lock().await;
         database.remove(&key_vec);
@@ -240,11 +231,7 @@ impl<V> Value<V> {
 
 #[derive(Debug)]
 pub enum CachedKvStoreError {
-    Serialize {
-        type_name: &'static str,
-        data: String,
-        error: bincode::Error,
-    },
+    DataType(crate::data_type::DataTypeError),
     KeyError(&'static str),
     Downcast(&'static str),
 }
@@ -256,3 +243,9 @@ impl std::fmt::Display for CachedKvStoreError {
 }
 
 impl std::error::Error for CachedKvStoreError {}
+
+impl From<crate::data_type::DataTypeError> for CachedKvStoreError {
+    fn from(value: crate::data_type::DataTypeError) -> Self {
+        Self::DataType(value)
+    }
+}

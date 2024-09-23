@@ -2400,6 +2400,7 @@ dependencies = [
  "bincode",
  "rocksdb",
  "serde",
+ "serde_json",
  "tokio",
 ]
 
