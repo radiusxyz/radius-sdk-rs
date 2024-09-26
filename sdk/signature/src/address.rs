@@ -72,4 +72,8 @@ impl Address {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    pub fn as_hex_string(&self) -> String {
+        const_hex::encode_prefixed(&self.0)
+    }
 }

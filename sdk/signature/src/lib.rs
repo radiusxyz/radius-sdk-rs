@@ -145,3 +145,20 @@ fn test_polymorphic_type_conversion() {
 
     assert!(address_from_string == address_from_array);
 }
+
+#[test]
+fn test_hex_conversion() {
+    let (sequencer_signer, _) = PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
+
+    let address = sequencer_signer.address().clone();
+    let address_hex = address.as_hex_string();
+    let address_json = serde_json::to_string(&address_hex).unwrap();
+    let parsed_address: Address = serde_json::from_str(&address_json).unwrap();
+    assert!(address == parsed_address);
+
+    let signature = sequencer_signer.sign_message("message").unwrap();
+    let signature_hex = signature.as_hex_string();
+    let signature_json = serde_json::to_string(&signature_hex).unwrap();
+    let parsed_signature: Signature = serde_json::from_str(&signature_json).unwrap();
+    assert!(signature == parsed_signature);
+}
