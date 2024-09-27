@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum SignatureError {
     DeserializeAddress(const_hex::FromHexError),
+    DeserializeSignature(const_hex::FromHexError),
     SerializeMessage(bincode::Error),
     Ethereum(crate::chain_type::ethereum::EthereumError),
 }

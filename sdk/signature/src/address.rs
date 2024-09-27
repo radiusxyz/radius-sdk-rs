@@ -13,15 +13,6 @@ enum AddressType {
     String(String),
 }
 
-/// Print the address as a hexadecimal string.
-impl std::fmt::Display for Address {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0
-            .iter()
-            .try_for_each(|byte| f.write_fmt(format_args!("{:x?}", byte)))
-    }
-}
-
 impl<T: AsRef<[u8]>> std::cmp::PartialEq<T> for Address {
     fn eq(&self, other: &T) -> bool {
         self.0.as_slice() == other.as_ref()
@@ -71,5 +62,9 @@ impl Address {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn as_hex_string(&self) -> String {
+        const_hex::encode_prefixed(&self.0)
     }
 }
