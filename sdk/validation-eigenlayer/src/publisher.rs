@@ -381,19 +381,15 @@ impl Publisher {
         block_commitment: impl AsRef<[u8]>,
         block_number: u64,
         rollup_id: impl AsRef<str>,
-        proposer_set_id: impl AsRef<str>,
+        cluster_id: impl AsRef<str>,
     ) -> Result<FixedBytes<32>, PublisherError> {
         let block_commitment = Bytes::from_iter(block_commitment.as_ref());
         let rollup_id = rollup_id.as_ref().to_owned();
-        let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
-            .map_err(PublisherError::ParseProposerSetId)?;
+        let cluster_id = cluster_id.as_ref().to_owned();
 
-        let transaction = self.avs_contract.createNewTask(
-            block_commitment,
-            block_number,
-            rollup_id,
-            proposer_set_id,
-        );
+        let transaction =
+            self.avs_contract
+                .createNewTask(block_commitment, block_number, rollup_id, cluster_id);
         let pending_transaction = transaction.send().await;
         let transaction_hash = self
             .extract_transaction_hash_from_pending_transaction(pending_transaction)
