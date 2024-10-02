@@ -380,11 +380,11 @@ impl Publisher {
         &self,
         block_commitment: impl AsRef<[u8]>,
         block_number: u64,
-        rollup_id: u32,
+        rollup_id: impl AsRef<str>,
         proposer_set_id: impl AsRef<str>,
     ) -> Result<FixedBytes<32>, PublisherError> {
         let block_commitment = Bytes::from_iter(block_commitment.as_ref());
-
+        let rollup_id = rollup_id.as_ref().to_owned();
         let proposer_set_id = FixedBytes::from_str(proposer_set_id.as_ref())
             .map_err(PublisherError::ParseProposerSetId)?;
 
@@ -399,6 +399,25 @@ impl Publisher {
             .extract_transaction_hash_from_pending_transaction(pending_transaction)
             .await
             .map_err(PublisherError::RegisterBlockCommitment)?;
+
+        Ok(transaction_hash)
+    }
+
+    pub async fn respond_to_task(
+        &self,
+        task: Avs::Task,
+        task_index: u32,
+        block_commitment: impl AsRef<[u8]>,
+    ) -> Result<FixedBytes<32>, PublisherError> {
+        let block_commitment = Bytes::from_iter(block_commitment.as_ref());
+        let transaction = self
+            .avs_contract
+            .respondToTask(task, task_index, block_commitment);
+        let pending_transaction = transaction.send().await;
+        let transaction_hash = self
+            .extract_transaction_hash_from_pending_transaction(pending_transaction)
+            .await
+            .map_err(PublisherError::RespondToTask)?;
 
         Ok(transaction_hash)
     }
@@ -434,6 +453,7 @@ pub enum PublisherError {
     OperatorSignature(alloy::signers::Error),
     RegisterOperatorOnAvs(TransactionError),
     RegisterBlockCommitment(TransactionError),
+    RespondToTask(TransactionError),
 }
 
 impl std::fmt::Display for PublisherError {
