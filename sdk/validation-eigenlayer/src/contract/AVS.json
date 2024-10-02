@@ -15,9 +15,9 @@
                     "internalType": "uint64"
                 },
                 {
-                    "name": "_rollupID",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    "name": "_rollupId",
+                    "type": "string",
+                    "internalType": "string"
                 },
                 {
                     "name": "_clusterID",
@@ -35,7 +35,7 @@
                 {
                     "name": "task",
                     "type": "tuple",
-                    "internalType": "struct IHelloWorldServiceManager.Task",
+                    "internalType": "struct IValidationServiceManager.Task",
                     "components": [
                         {
                             "name": "commitment",
@@ -48,9 +48,9 @@
                             "internalType": "uint64"
                         },
                         {
-                            "name": "rollupID",
-                            "type": "uint32",
-                            "internalType": "uint32"
+                            "name": "rollupId",
+                            "type": "string",
+                            "internalType": "string"
                         },
                         {
                             "name": "clusterID",
@@ -79,6 +79,19 @@
             "stateMutability": "nonpayable"
         },
         {
+            "type": "function",
+            "name": "updateAVSMetadata",
+            "inputs": [
+                {
+                    "name": "_metadataURI",
+                    "type": "string",
+                    "internalType": "string"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
             "type": "event",
             "name": "NewTaskCreated",
             "inputs": [
@@ -92,7 +105,7 @@
                     "name": "task",
                     "type": "tuple",
                     "indexed": false,
-                    "internalType": "struct IHelloWorldServiceManager.Task",
+                    "internalType": "struct IValidationServiceManager.Task",
                     "components": [
                         {
                             "name": "commitment",
@@ -105,9 +118,9 @@
                             "internalType": "uint64"
                         },
                         {
-                            "name": "rollupID",
-                            "type": "uint32",
-                            "internalType": "uint32"
+                            "name": "rollupId",
+                            "type": "string",
+                            "internalType": "string"
                         },
                         {
                             "name": "clusterID",
@@ -134,10 +147,10 @@
                     "internalType": "uint64"
                 },
                 {
-                    "name": "rollupID",
-                    "type": "uint32",
+                    "name": "rollupId",
+                    "type": "string",
                     "indexed": false,
-                    "internalType": "uint32"
+                    "internalType": "string"
                 },
                 {
                     "name": "clusterID",
@@ -177,10 +190,10 @@
                     "internalType": "uint64"
                 },
                 {
-                    "name": "rollupID",
-                    "type": "uint32",
+                    "name": "rollupId",
+                    "type": "string",
                     "indexed": false,
-                    "internalType": "uint32"
+                    "internalType": "string"
                 },
                 {
                     "name": "clusterID",
@@ -215,13 +228,14 @@
         "linkReferences": {}
     },
     "methodIdentifiers": {
-        "createNewTask(bytes,uint64,uint32,bytes32)": "9fc5b9ff",
-        "respondToTask((bytes,uint64,uint32,bytes32,uint32),uint32,bytes)": "6ea04105"
+        "createNewTask(bytes,uint64,string,bytes32)": "be286e13",
+        "respondToTask((bytes,uint64,string,bytes32,uint32),uint32,bytes)": "9e53693a",
+        "updateAVSMetadata(string)": "b1eb9e95"
     },
-    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"taskIndex\",\"type\":\"uint32\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"rollupID\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"struct IHelloWorldServiceManager.Task\",\"name\":\"task\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"rollupID\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"name\":\"NewTaskCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"taskIndex\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"rollupID\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"name\":\"TaskResponded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"_rollupID\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"_clusterID\",\"type\":\"bytes32\"}],\"name\":\"createNewTask\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"rollupID\",\"type\":\"uint32\"},{\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"internalType\":\"struct IHelloWorldServiceManager.Task\",\"name\":\"task\",\"type\":\"tuple\"},{\"internalType\":\"uint32\",\"name\":\"referenceTaskIndex\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"respondToTask\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/IHelloWorldServiceManager.sol\":\"IHelloWorldServiceManager\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":@eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/\",\":@eigenlayer/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/\",\":@openzeppelin-upgrades-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":@openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/\",\":ds-test/=lib/eigenlayer-middleware/lib/ds-test/src/\",\":eigenlayer-contracts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/\",\":eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":erc4626-tests/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":openzeppelin-contracts-upgradeable/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/contracts/\"]},\"sources\":{\"src/IHelloWorldServiceManager.sol\":{\"keccak256\":\"0x21022aadf4b33a0a1a54ec7e385c67243f297ffef35fe19b40bd542209762598\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://d2d421c5c81db64e975d906f245ee2d105ef85029ae19a9319e9c24f9bb26e96\",\"dweb:/ipfs/Qmezojb5wVfQdrpPNBW1vPMJ8SHHgeyv7cZfgEto5fVAnN\"]}},\"version\":1}",
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.25+commit.b61c2a91\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"taskIndex\",\"type\":\"uint32\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"struct IValidationServiceManager.Task\",\"name\":\"task\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"name\":\"NewTaskCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"taskIndex\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"name\":\"TaskResponded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"string\",\"name\":\"_rollupId\",\"type\":\"string\"},{\"internalType\":\"bytes32\",\"name\":\"_clusterID\",\"type\":\"bytes32\"}],\"name\":\"createNewTask\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"internalType\":\"bytes32\",\"name\":\"clusterID\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"internalType\":\"struct IValidationServiceManager.Task\",\"name\":\"task\",\"type\":\"tuple\"},{\"internalType\":\"uint32\",\"name\":\"referenceTaskIndex\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"respondToTask\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_metadataURI\",\"type\":\"string\"}],\"name\":\"updateAVSMetadata\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/IValidationServiceManager.sol\":\"IValidationServiceManager\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":@eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/\",\":@eigenlayer/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/\",\":@openzeppelin-upgrades-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":@openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/\",\":ds-test/=lib/eigenlayer-middleware/lib/ds-test/src/\",\":eigenlayer-contracts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/\",\":eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":erc4626-tests/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":openzeppelin-contracts-upgradeable/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/contracts/\"]},\"sources\":{\"src/IValidationServiceManager.sol\":{\"keccak256\":\"0xd7ce55d49bb5fb3b453a4e361490ea9118f323978e58012c9b3afe4381c8b56a\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://f2783ec78fb2f8ce3ccf08b21f177ecbf71a7ee646352fd511ac51a2f254c322\",\"dweb:/ipfs/Qmab5mBBwcnswuAJyJzKPq9dDfAY6i7eSo1zytJc5eQjeT\"]}},\"version\":1}",
     "metadata": {
         "compiler": {
-            "version": "0.8.26+commit.8a97fa7a"
+            "version": "0.8.25+commit.b61c2a91"
         },
         "language": "Solidity",
         "output": {
@@ -235,7 +249,7 @@
                             "indexed": true
                         },
                         {
-                            "internalType": "struct IHelloWorldServiceManager.Task",
+                            "internalType": "struct IValidationServiceManager.Task",
                             "name": "task",
                             "type": "tuple",
                             "components": [
@@ -250,9 +264,9 @@
                                     "type": "uint64"
                                 },
                                 {
-                                    "internalType": "uint32",
-                                    "name": "rollupID",
-                                    "type": "uint32"
+                                    "internalType": "string",
+                                    "name": "rollupId",
+                                    "type": "string"
                                 },
                                 {
                                     "internalType": "bytes32",
@@ -280,9 +294,9 @@
                             "indexed": false
                         },
                         {
-                            "internalType": "uint32",
-                            "name": "rollupID",
-                            "type": "uint32",
+                            "internalType": "string",
+                            "name": "rollupId",
+                            "type": "string",
                             "indexed": false
                         },
                         {
@@ -323,9 +337,9 @@
                             "indexed": false
                         },
                         {
-                            "internalType": "uint32",
-                            "name": "rollupID",
-                            "type": "uint32",
+                            "internalType": "string",
+                            "name": "rollupId",
+                            "type": "string",
                             "indexed": false
                         },
                         {
@@ -364,9 +378,9 @@
                             "type": "uint64"
                         },
                         {
-                            "internalType": "uint32",
-                            "name": "_rollupID",
-                            "type": "uint32"
+                            "internalType": "string",
+                            "name": "_rollupId",
+                            "type": "string"
                         },
                         {
                             "internalType": "bytes32",
@@ -381,7 +395,7 @@
                 {
                     "inputs": [
                         {
-                            "internalType": "struct IHelloWorldServiceManager.Task",
+                            "internalType": "struct IValidationServiceManager.Task",
                             "name": "task",
                             "type": "tuple",
                             "components": [
@@ -396,9 +410,9 @@
                                     "type": "uint64"
                                 },
                                 {
-                                    "internalType": "uint32",
-                                    "name": "rollupID",
-                                    "type": "uint32"
+                                    "internalType": "string",
+                                    "name": "rollupId",
+                                    "type": "string"
                                 },
                                 {
                                     "internalType": "bytes32",
@@ -426,6 +440,18 @@
                     "stateMutability": "nonpayable",
                     "type": "function",
                     "name": "respondToTask"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "string",
+                            "name": "_metadataURI",
+                            "type": "string"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "updateAVSMetadata"
                 }
             ],
             "devdoc": {
@@ -467,22 +493,22 @@
                 "bytecodeHash": "ipfs"
             },
             "compilationTarget": {
-                "src/IHelloWorldServiceManager.sol": "IHelloWorldServiceManager"
+                "src/IValidationServiceManager.sol": "IValidationServiceManager"
             },
             "evmVersion": "paris",
             "libraries": {}
         },
         "sources": {
-            "src/IHelloWorldServiceManager.sol": {
-                "keccak256": "0x21022aadf4b33a0a1a54ec7e385c67243f297ffef35fe19b40bd542209762598",
+            "src/IValidationServiceManager.sol": {
+                "keccak256": "0xd7ce55d49bb5fb3b453a4e361490ea9118f323978e58012c9b3afe4381c8b56a",
                 "urls": [
-                    "bzz-raw://d2d421c5c81db64e975d906f245ee2d105ef85029ae19a9319e9c24f9bb26e96",
-                    "dweb:/ipfs/Qmezojb5wVfQdrpPNBW1vPMJ8SHHgeyv7cZfgEto5fVAnN"
+                    "bzz-raw://f2783ec78fb2f8ce3ccf08b21f177ecbf71a7ee646352fd511ac51a2f254c322",
+                    "dweb:/ipfs/Qmab5mBBwcnswuAJyJzKPq9dDfAY6i7eSo1zytJc5eQjeT"
                 ],
                 "license": "UNLICENSED"
             }
         },
         "version": 1
     },
-    "id": 99
+    "id": 98
 }
