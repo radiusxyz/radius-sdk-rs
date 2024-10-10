@@ -1,0 +1,15 @@
+[package]
+name = "kvstore-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dev-dependencies]
+kvstore = { path = "../kvstore" }
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true, features = ["full", "extra-traits"] }

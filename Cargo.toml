@@ -1,15 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
-    "full-node",
+    "radius-sdk",
     "sdk/block-commitment",
     "sdk/context",
     "sdk/json-rpc",
     "sdk/kvstore",
+    "sdk/kvstore-macros",
     "sdk/liveness-radius",
     "sdk/signature",
     "sdk/validation-eigenlayer",
-    "sequencer",
 ]
 
 [workspace.dependencies]
@@ -21,3 +21,7 @@ rand = "0.8"
 serde = { version = "1.0.197", default-features = false }
 serde_json = { version = "1.0", default-features = false }
 tokio = { version = "1.0", default-features = false }
+
+proc-macro2 = { version = "1.0.87", default-features = false }
+quote = { version = "1.0.37", default-features = false }
+syn = { version = "2.0.79", default-features = false }
