@@ -40,8 +40,6 @@ impl Parse for KeyAttributes {
 
 impl KeyAttributes {
     pub fn from_ast(ast: &DeriveInput) -> Result<Self> {
-        if ast.attrs.is_empty() {}
-
         if ast.attrs.len() > 1 {
             return Err(Error::new_spanned(ast, "'key' attribute already exists."));
         }

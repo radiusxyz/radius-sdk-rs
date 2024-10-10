@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "full-node",
+    "radius-sdk",
     "sdk/block-commitment",
     "sdk/context",
     "sdk/json-rpc",
@@ -10,7 +10,6 @@ members = [
     "sdk/liveness-radius",
     "sdk/signature",
     "sdk/validation-eigenlayer",
-    "sequencer",
 ]
 
 [workspace.dependencies]

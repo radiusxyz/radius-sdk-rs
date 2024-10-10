@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bincode = { workspace = true, optional = true }
+kvstore-macros = { path = "../kvstore-macros" }
 rocksdb = "0.22"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { version = "1", optional = true }
