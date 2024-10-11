@@ -94,6 +94,25 @@ impl KvStore {
         Ok(value)
     }
 
+    pub fn get_or<K, V, F>(&self, key: &K, function: F) -> Result<V, KvStoreError>
+    where
+        K: Debug + Serialize,
+        V: Debug + Default + DeserializeOwned + Serialize,
+        F: FnOnce() -> V,
+    {
+        let key_vec = serialize(key)?;
+
+        let value_slice = self
+            .database
+            .get_pinned(key_vec)
+            .map_err(KvStoreError::Get)?;
+
+        match value_slice {
+            Some(value_slice) => deserialize(value_slice).map_err(|error| error.into()),
+            None => Ok(function()),
+        }
+    }
+
     /// Get the value or return `V::default()`.
     pub fn get_or_default<K, V>(&self, key: &K) -> Result<V, KvStoreError>
     where
@@ -130,6 +149,49 @@ impl KvStore {
         let locked_value = Lock::new(Some(transaction), key_vec, value);
 
         Ok(locked_value)
+    }
+
+    pub fn get_mut_or<K, V, F>(&self, key: &K, function: F) -> Result<Lock<V>, KvStoreError>
+    where
+        K: Debug + Serialize,
+        V: Debug + Default + DeserializeOwned + Serialize,
+        F: FnOnce() -> V,
+    {
+        let key_vec = serialize(key)?;
+
+        let transaction = self.database.transaction();
+
+        let value_vec = transaction
+            .get_for_update(&key_vec, true)
+            .map_err(KvStoreError::GetMut)?;
+        match value_vec {
+            Some(value_vec) => {
+                let value: V = deserialize(value_vec)?;
+                let locked_value = Lock::new(Some(transaction), key_vec, value);
+
+                Ok(locked_value)
+            }
+            None => {
+                let value = function();
+                let value_vec = serialize(&value)?;
+
+                transaction
+                    .put(&key_vec, value_vec)
+                    .map_err(KvStoreError::Put)?;
+
+                // After the `commit()`, other threads may access [FnOnce() -> V].
+                transaction.commit().map_err(KvStoreError::CommitPut)?;
+
+                let transaction = self.database.transaction();
+
+                transaction
+                    .get_for_update(&key_vec, true)
+                    .map_err(KvStoreError::GetMut)?;
+                let locked_value = Lock::new(Some(transaction), key_vec, value);
+
+                Ok(locked_value)
+            }
+        }
     }
 
     /// Get [`Lock<V>`] or put the default value for `V` and get [`Lock<V>`] if
