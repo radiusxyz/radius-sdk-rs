@@ -14,9 +14,9 @@ pub fn expand_derive_model(input: &mut DeriveInput) -> Result<TokenStream> {
     let id = const_id(&ident);
     let put = fn_put(&key_attributes);
     let get = fn_get(&key_attributes);
-    let get_or_default = fn_get_or_default(&key_attributes);
+    let get_or = fn_get_or(&key_attributes);
     let get_mut = fn_get_mut(&key_attributes);
-    let get_mut_or_default = fn_get_mut_or_default(&key_attributes);
+    let get_mut_or = fn_get_mut_or(&key_attributes);
     let apply = fn_apply(&key_attributes);
     let delete = fn_delete(&key_attributes);
 
@@ -25,9 +25,9 @@ pub fn expand_derive_model(input: &mut DeriveInput) -> Result<TokenStream> {
             #id
             #put
             #get
-            #get_or_default
+            #get_or
             #get_mut
-            #get_mut_or_default
+            #get_mut_or
             #apply
             #delete
         }
