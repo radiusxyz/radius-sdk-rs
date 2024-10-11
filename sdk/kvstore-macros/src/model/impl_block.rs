@@ -36,15 +36,18 @@ pub fn fn_get(key_attributes: &KeyAttributes) -> TokenStream {
     }
 }
 
-pub fn fn_get_or_default(key_attributes: &KeyAttributes) -> TokenStream {
+pub fn fn_get_or(key_attributes: &KeyAttributes) -> TokenStream {
     let parameters = key_attributes.as_function_parameters();
     let key_names = key_attributes.iter().map(|key| &key.name);
 
     quote! {
-        pub fn get_or_default(#parameters) -> std::result::Result<Self, radius_sdk::kvstore::KvStoreError> {
+        pub fn get_or<F>(#parameters function: F) -> std::result::Result<Self, radius_sdk::kvstore::KvStoreError>
+        where
+            F: FnOnce() -> Self,
+        {
             let key = &(Self::ID, #(#key_names,)*);
 
-            radius_sdk::kvstore::kvstore()?.get_or_default(key)
+            radius_sdk::kvstore::kvstore()?.get_or(key, function)
         }
     }
 }
@@ -62,15 +65,18 @@ pub fn fn_get_mut(key_attributes: &KeyAttributes) -> TokenStream {
     }
 }
 
-pub fn fn_get_mut_or_default(key_attributes: &KeyAttributes) -> TokenStream {
+pub fn fn_get_mut_or(key_attributes: &KeyAttributes) -> TokenStream {
     let parameters = key_attributes.as_function_parameters();
     let key_names = key_attributes.iter().map(|key| &key.name);
 
     quote! {
-        pub fn get_mut_or_default(#parameters) -> std::result::Result<radius_sdk::kvstore::Lock<'static, Self>, radius_sdk::kvstore::KvStoreError> {
+        pub fn get_mut_or<F>(#parameters function: F) -> std::result::Result<radius_sdk::kvstore::Lock<'static, Self>, radius_sdk::kvstore::KvStoreError>
+        where
+            F: FnOnce() -> Self,
+        {
             let key = &(Self::ID, #(#key_names,)*);
 
-            radius_sdk::kvstore::kvstore()?.get_mut_or_default(key)
+            radius_sdk::kvstore::kvstore()?.get_mut_or(key, function)
         }
     }
 }
