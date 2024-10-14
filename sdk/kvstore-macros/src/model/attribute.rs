@@ -22,9 +22,9 @@ impl KvStoreAttribute {
                 match &attribute.meta {
                     Meta::List(meta_list) => {
                         let attribute =
-                            syn::parse2::<AttributeKind>(meta_list.tokens.to_token_stream())?;
+                            syn::parse2::<AttributeType>(meta_list.tokens.to_token_stream())?;
                         match attribute {
-                            AttributeKind::Path(path) => {
+                            AttributeType::Path(path) => {
                                 if path_attribute.is_some() {
                                     return Err(Error::new_spanned(
                                         meta_list,
@@ -33,7 +33,7 @@ impl KvStoreAttribute {
                                 }
                                 path_attribute = Some(path);
                             }
-                            AttributeKind::Key(key) => {
+                            AttributeType::Key(key) => {
                                 if key_attribute.is_some() {
                                     return Err(Error::new_spanned(
                                         meta_list,
@@ -50,7 +50,7 @@ impl KvStoreAttribute {
         }
 
         if path_attribute.is_none() {
-            let default_path = "= radius_sdk::kvstore".to_token_stream();
+            let default_path = quote!(radius_sdk::kvstore);
             let default_path: PathAttribute = syn::parse2(default_path)?;
             println!("{:?}", default_path);
             path_attribute = Some(default_path);
@@ -72,16 +72,17 @@ impl KvStoreAttribute {
 }
 
 #[derive(Debug)]
-pub enum AttributeKind {
+pub enum AttributeType {
     Path(PathAttribute),
     Key(KeyAttribute),
 }
 
-impl Parse for AttributeKind {
+impl Parse for AttributeType {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let ident: Ident = input.parse()?;
         match ident.to_string().as_str() {
             "path" => {
+                let _punctuation: Token![=] = input.parse()?;
                 let tokens: TokenStream = input.parse()?;
                 let path_attribute = syn::parse2::<PathAttribute>(tokens)?;
 
@@ -101,14 +102,14 @@ impl Parse for AttributeKind {
 #[derive(Debug)]
 #[allow(unused)]
 pub struct PathAttribute {
-    punctuation: Token![=],
+    // punctuation: Token![=],
     path: Path,
 }
 
 impl Parse for PathAttribute {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         Ok(Self {
-            punctuation: input.parse()?,
+            // punctuation: input.parse()?,
             path: input.parse()?,
         })
     }
