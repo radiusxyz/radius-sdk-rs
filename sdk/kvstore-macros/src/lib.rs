@@ -3,7 +3,7 @@ mod model;
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, Error};
 
-#[proc_macro_derive(Model, attributes(kvstore_key))]
+#[proc_macro_derive(Model, attributes(kvstore))]
 pub fn derive_model(input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);
 
