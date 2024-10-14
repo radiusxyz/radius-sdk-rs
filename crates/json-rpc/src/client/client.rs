@@ -8,7 +8,6 @@ use reqwest::Client;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::client::{
-    error::RpcClientError,
     id::Id,
     request::Request,
     response::{Payload, Response},
@@ -39,7 +38,7 @@ impl RpcClient {
         &self,
         rpc_url: impl AsRef<str>,
         method: impl AsRef<str>,
-        parameter: &P,
+        parameter: P,
         id: impl Into<Id>,
     ) -> Result<R, RpcClientError>
     where
@@ -68,20 +67,52 @@ impl RpcClient {
         }
     }
 
-    // pub async fn fetch<P, R>(
-    //     &self,
-    //     method: impl AsRef<str>,
-    //     rpc_url_list: Vec<impl AsRef<str>>,
-    //     parameter: &P,
-    //     id: impl Into<Id>,
-    // ) -> Result<R, RpcClientError>
-    // where
-    //     P: Serialize + Send,
-    //     R: DeserializeOwned,
-    // {
-    //     let request = Request::owned(method, parameter, id);
-    //     let fused_futures: Vec<Pin<Box<Fuse<_>>>> =
-    // rpc_url_list.iter().map(|rpc_url| Box::pin(self.request(method,
-    // id))).collect();     let response =
-    // select_ok(fused_futures).await.map_err(|error|)?; }
+    pub async fn fetch<P, R>(
+        &self,
+        method: impl AsRef<str>,
+        rpc_url_list: Vec<impl AsRef<str>>,
+        parameter: P,
+        id: impl Into<Id>,
+    ) -> Result<R, RpcClientError>
+    where
+        P: Serialize + Send,
+        R: DeserializeOwned,
+    {
+        let fused_futures: Vec<Pin<Box<Fuse<_>>>> = rpc_url_list
+            .iter()
+            .map(|rpc_url| Box::pin(self.request::<P, R>(rpc_url, method, parameter, id).fuse()))
+            .collect();
+
+        let response: (R, Vec<_>) = select_ok(fused_futures).await?;
+
+        Ok(response.0)
+    }
+    //         let fused_futures: Vec<Pin<Box<Fuse<_>>>> =
+    // rpc_url_list.iter().map(|rpc_url| {Box::pin(self.request(method,
+    // id)).fuse()}).collect();     let response =
+    // select_ok(fused_futures).await.map_err(|error|)?;     Ok(())
+    // }
+}
+
+#[derive(Debug)]
+pub enum RpcClientError {
+    BuildClient(reqwest::Error),
+    Send(reqwest::Error),
+    ParseResponse(reqwest::Error),
+    IdMismatch,
+    Response(crate::client::response::ResponseError),
+}
+
+impl std::fmt::Display for RpcClientError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for RpcClientError {}
+
+impl From<crate::client::response::ResponseError> for RpcClientError {
+    fn from(value: crate::client::response::ResponseError) -> Self {
+        Self::Response(value)
+    }
 }
