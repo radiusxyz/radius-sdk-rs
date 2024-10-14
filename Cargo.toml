@@ -10,6 +10,7 @@ members = [
     "sdk/liveness-radius",
     "sdk/signature",
     "sdk/validation-eigenlayer",
+    "sdk/validation-symbiotic",
 ]
 
 [workspace.dependencies]
