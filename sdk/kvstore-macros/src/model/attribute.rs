@@ -40,22 +40,25 @@ impl Parse for KeyAttributes {
 
 impl KeyAttributes {
     pub fn from_ast(ast: &DeriveInput) -> Result<Self> {
-        if ast.attrs.len() > 1 {
-            return Err(Error::new_spanned(ast, "'key' attribute already exists."));
-        }
+        let attribute = ast
+            .attrs
+            .iter()
+            .find(|attribute| attribute.path().is_ident("kvstore_key"));
 
-        match ast.attrs.get(0) {
+        match attribute {
             Some(attribute) => match &attribute.meta {
                 Meta::List(meta_list) => {
                     let key_attributes = syn::parse2::<Self>(meta_list.tokens.to_token_stream())?;
-                    Ok(key_attributes)
+                    return Ok(key_attributes);
                 }
-                others => Err(Error::new_spanned(others, "key attributes must be a list.")),
+                others => return Err(Error::new_spanned(others, "key attributes must be a list.")),
             },
-            None => Err(Error::new_spanned(
-                ast,
-                "`derive(Model)` requires 'key' attribute.",
-            )),
+            None => {
+                return Err(Error::new_spanned(
+                    ast,
+                    "`derive(Model)` requires 'kvstore_key' attribute.",
+                ))
+            }
         }
     }
 
