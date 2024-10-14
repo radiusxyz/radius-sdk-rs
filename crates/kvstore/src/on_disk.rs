@@ -97,7 +97,7 @@ impl KvStore {
     pub fn get_or<K, V, F>(&self, key: &K, function: F) -> Result<V, KvStoreError>
     where
         K: Debug + Serialize,
-        V: Debug + Default + DeserializeOwned + Serialize,
+        V: Debug + DeserializeOwned + Serialize,
         F: FnOnce() -> V,
     {
         let key_vec = serialize(key)?;
@@ -154,7 +154,7 @@ impl KvStore {
     pub fn get_mut_or<K, V, F>(&self, key: &K, function: F) -> Result<Lock<V>, KvStoreError>
     where
         K: Debug + Serialize,
-        V: Debug + Default + DeserializeOwned + Serialize,
+        V: Debug + DeserializeOwned + Serialize,
         F: FnOnce() -> V,
     {
         let key_vec = serialize(key)?;
