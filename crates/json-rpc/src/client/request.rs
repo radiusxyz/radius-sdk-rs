@@ -4,12 +4,50 @@ use serde::Serialize;
 
 use crate::client::id::Id;
 
-const JSONRPC: &'static str = "2.0";
+const JSONRPC: &str = "2.0";
 
-#[derive(Clone, Debug, Serialize)]
-pub struct Request<T>
+#[derive(Debug, Serialize)]
+pub struct Request<'param, T>
 where
     T: Serialize + Send,
+{
+    jsonrpc: &'static str,
+    method: &'param str,
+    params: &'param T,
+    id: Id,
+}
+
+unsafe impl<'param, T> Send for Request<'param, T> where T: Serialize + Send {}
+
+impl<'param, T> Request<'param, T>
+where
+    T: Serialize + Send,
+{
+    pub fn new(method: &'param str, parameter: &'param T, id: &impl Into<Id>) -> Self {
+        Self {
+            jsonrpc: JSONRPC,
+            method,
+            params: parameter,
+            id: id.into(),
+        }
+    }
+
+    pub fn id(&self) -> &Id {
+        &self.id
+    }
+}
+
+pub struct RequestOwned<T>
+where
+    T: Clone + Serialize + Send,
+{
+    inner: Arc<RequestOwnedInner<T>>,
+}
+
+#[derive(Debug, Serialize)]
+struct RequestOwnedInner<T>
+where
+    T: Clone + Serialize + Send,
 {
     jsonrpc: &'static str,
     method: String,
@@ -17,32 +55,42 @@ where
     id: Id,
 }
 
-unsafe impl<T> Send for Request<T> where T: Serialize + Send {}
-
-impl<T> Request<T>
+impl<T> std::ops::Deref for RequestOwned<T>
 where
-    T: Serialize + Send,
+    T: Clone + Serialize + Send,
 {
-    pub fn new(method: impl AsRef<str>, parameter: T, id: impl Into<Id>) -> Self {
+    type Target = RequestOwnedInner<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<T> Clone for RequestOwned<T>
+where
+    T: Clone + Serialize + Send,
+{
+    fn clone(&self) -> Self {
         Self {
-            jsonrpc: JSONRPC,
-            method: method.as_ref().to_owned(),
-            params: parameter,
-            id: id.into(),
+            inner: self.inner.clone(),
         }
     }
+}
 
-    pub fn owned(method: impl AsRef<str>, parameter: T, id: impl Into<Id>) -> Arc<Self> {
-        Self {
+impl<T> RequestOwned<T>
+where
+    T: Clone + Serialize + Send,
+{
+    pub fn new(method: &str, parameter: &T, id: &impl Into<Id>) -> Self {
+        let inner = RequestOwnedInner {
             jsonrpc: JSONRPC,
-            method: method.as_ref().to_owned(),
-            params: parameter,
+            method: method.to_owned(),
+            params: parameter.to_owned(),
             id: id.into(),
-        }
-        .into()
-    }
+        };
 
-    pub fn id(&self) -> &Id {
-        &self.id
+        Self {
+            inner: Arc::new(inner),
+        }
     }
 }
