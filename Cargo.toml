@@ -2,14 +2,14 @@
 resolver = "2"
 members = [
     "radius-sdk",
-    "sdk/block-commitment",
-    "sdk/context",
-    "sdk/json-rpc",
-    "sdk/kvstore",
-    "sdk/kvstore-macros",
-    "sdk/liveness-radius",
-    "sdk/signature",
-    "sdk/validation-eigenlayer",
+    "crates/block-commitment",
+    "crates/context",
+    "crates/json-rpc",
+    "crates/kvstore",
+    "crates/kvstore-macros",
+    "crates/liveness-radius",
+    "crates/signature",
+    "crates/validation-eigenlayer",
 ]
 
 [workspace.dependencies]
