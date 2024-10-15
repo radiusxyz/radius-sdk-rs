@@ -20,7 +20,7 @@ pub fn fn_put(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream> {
             pub fn put(&self, #parameters) -> std::result::Result<(), #path::KvStoreError> {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.put(key, self)
+                #path::kvstore()?.put(key, self)
             }
         })
     } else {
@@ -32,12 +32,13 @@ pub fn fn_get(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream> {
     if let Some(key_attribute) = kvstore_attribute.key_attribute() {
         let parameters = key_attribute.as_function_parameters();
         let key_names = key_attribute.iter().map(|key| &key.name);
+        let path = kvstore_attribute.path();
 
         Some(quote! {
-            pub fn get(#parameters) -> std::result::Result<Self, radius_sdk::kvstore::KvStoreError> {
+            pub fn get(#parameters) -> std::result::Result<Self, #path::KvStoreError> {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.get(key)
+                #path::kvstore()?.get(key)
             }
         })
     } else {
@@ -49,15 +50,16 @@ pub fn fn_get_or(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream> {
     if let Some(key_attribute) = kvstore_attribute.key_attribute() {
         let parameters = key_attribute.as_function_parameters();
         let key_names = key_attribute.iter().map(|key| &key.name);
+        let path = kvstore_attribute.path();
 
         Some(quote! {
-            pub fn get_or<F>(#parameters function: F) -> std::result::Result<Self, radius_sdk::kvstore::KvStoreError>
+            pub fn get_or<F>(#parameters function: F) -> std::result::Result<Self, #path::KvStoreError>
             where
                 F: FnOnce() -> Self,
             {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.get_or(key, function)
+                #path::kvstore()?.get_or(key, function)
             }
         })
     } else {
@@ -69,12 +71,13 @@ pub fn fn_get_mut(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream> {
     if let Some(key_attribute) = kvstore_attribute.key_attribute() {
         let parameters = key_attribute.as_function_parameters();
         let key_names = key_attribute.iter().map(|key| &key.name);
+        let path = kvstore_attribute.path();
 
         Some(quote! {
-            pub fn get_mut(#parameters) -> std::result::Result<radius_sdk::kvstore::Lock<'static, Self>, radius_sdk::kvstore::KvStoreError> {
+            pub fn get_mut(#parameters) -> std::result::Result<#path::Lock<'static, Self>, #path::KvStoreError> {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.get_mut(key)
+                #path::kvstore()?.get_mut(key)
             }
         })
     } else {
@@ -86,15 +89,16 @@ pub fn fn_get_mut_or(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream
     if let Some(key_attribute) = kvstore_attribute.key_attribute() {
         let parameters = key_attribute.as_function_parameters();
         let key_names = key_attribute.iter().map(|key| &key.name);
+        let path = kvstore_attribute.path();
 
         Some(quote! {
-            pub fn get_mut_or<F>(#parameters function: F) -> std::result::Result<radius_sdk::kvstore::Lock<'static, Self>, radius_sdk::kvstore::KvStoreError>
+            pub fn get_mut_or<F>(#parameters function: F) -> std::result::Result<#path::Lock<'static, Self>, #path::KvStoreError>
             where
                 F: FnOnce() -> Self,
             {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.get_mut_or(key, function)
+                #path::kvstore()?.get_mut_or(key, function)
             }
         })
     } else {
@@ -106,15 +110,16 @@ pub fn fn_apply(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream> {
     if let Some(key_attribute) = kvstore_attribute.key_attribute() {
         let parameters = key_attribute.as_function_parameters();
         let key_names = key_attribute.iter().map(|key| &key.name);
+        let path = kvstore_attribute.path();
 
         Some(quote! {
-            pub fn apply<F>(#parameters operation: F) -> std::result::Result<(), radius_sdk::kvstore::KvStoreError>
+            pub fn apply<F>(#parameters operation: F) -> std::result::Result<(), #path::KvStoreError>
             where
                 F: FnOnce(&mut Self),
             {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.apply(key, |value: &mut radius_sdk::kvstore::Lock<'_, Self>| { operation(value) })
+                #path::kvstore()?.apply(key, |value: &mut #path::Lock<'_, Self>| { operation(value) })
             }
         })
     } else {
@@ -126,12 +131,13 @@ pub fn fn_delete(kvstore_attribute: &KvStoreAttribute) -> Option<TokenStream> {
     if let Some(key_attribute) = kvstore_attribute.key_attribute() {
         let parameters = key_attribute.as_function_parameters();
         let key_names = key_attribute.iter().map(|key| &key.name);
+        let path = kvstore_attribute.path();
 
         Some(quote! {
-            pub fn delete(#parameters) -> std::result::Result<(), radius_sdk::kvstore::KvStoreError> {
+            pub fn delete(#parameters) -> std::result::Result<(), #path::KvStoreError> {
                 let key = &(Self::ID, #(#key_names,)*);
 
-                radius_sdk::kvstore::kvstore()?.delete(key)
+                #path::kvstore()?.delete(key)
             }
         })
     } else {
