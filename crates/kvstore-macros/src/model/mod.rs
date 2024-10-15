@@ -9,16 +9,16 @@ use syn::{DeriveInput, Result};
 
 pub fn expand_derive_model(input: &mut DeriveInput) -> Result<TokenStream> {
     let ident = &input.ident;
-    let key_attributes = KeyAttributes::from_ast(input)?;
+    let kvstore_attribute = KvStoreAttribute::from_ast(input)?;
 
-    let id = const_id(&ident);
-    let put = fn_put(&key_attributes);
-    let get = fn_get(&key_attributes);
-    let get_or = fn_get_or(&key_attributes);
-    let get_mut = fn_get_mut(&key_attributes);
-    let get_mut_or = fn_get_mut_or(&key_attributes);
-    let apply = fn_apply(&key_attributes);
-    let delete = fn_delete(&key_attributes);
+    let id = const_id(ident);
+    let put = fn_put(&kvstore_attribute);
+    let get = fn_get(&kvstore_attribute);
+    let get_or = fn_get_or(&kvstore_attribute);
+    let get_mut = fn_get_mut(&kvstore_attribute);
+    let get_mut_or = fn_get_mut_or(&kvstore_attribute);
+    let apply = fn_apply(&kvstore_attribute);
+    let delete = fn_delete(&kvstore_attribute);
 
     Ok(quote! {
         impl #ident {
