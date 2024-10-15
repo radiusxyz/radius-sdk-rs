@@ -11,7 +11,7 @@ pub fn expand_derive_model(input: &mut DeriveInput) -> Result<TokenStream> {
     let ident = &input.ident;
     let kvstore_attribute = KvStoreAttribute::from_ast(input)?;
 
-    let id = const_id(&ident);
+    let id = const_id(ident);
     let put = fn_put(&kvstore_attribute);
     let get = fn_get(&kvstore_attribute);
     let get_or = fn_get_or(&kvstore_attribute);
