@@ -190,12 +190,12 @@ impl std::error::Error for PublisherError {}
 
 #[cfg(test)]
 mod tests {
-    use std::{str::FromStr, sync::Arc, time::Duration};
+    use std::{sync::Arc, time::Duration};
 
     use tokio::time::sleep;
 
     use super::*;
-    use crate::{subscriber::Subscriber, types::Address};
+    use crate::subscriber::Subscriber;
 
     async fn callback(event: ValidationServiceManager::NewTaskCreated, _: Arc<()>) {
         println!("commitment: {:?}", event.commitment);
