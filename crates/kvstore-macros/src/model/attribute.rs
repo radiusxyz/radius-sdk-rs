@@ -52,7 +52,6 @@ impl KvStoreAttribute {
         if path_attribute.is_none() {
             let default_path = quote!(radius_sdk::kvstore);
             let default_path: PathAttribute = syn::parse2(default_path)?;
-            println!("{:?}", default_path);
             path_attribute = Some(default_path);
         }
 
