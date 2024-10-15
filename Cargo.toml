@@ -10,6 +10,7 @@ members = [
     "crates/liveness-radius",
     "crates/signature",
     "crates/validation-eigenlayer",
+    "crates/validation-symbiotic",
 ]
 
 [workspace.dependencies]

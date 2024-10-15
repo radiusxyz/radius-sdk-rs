@@ -12,3 +12,5 @@ pub use liveness_radius;
 pub use signature;
 #[cfg(any(feature = "full", feature = "validation-eigenlayer"))]
 pub use validation_eigenlayer;
+#[cfg(any(feature = "full", feature = "validation-symbiotic"))]
+pub use validation_symbiotic;
