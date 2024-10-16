@@ -6,48 +6,60 @@ use crate::client::id::Id;
 
 const JSONRPC: &str = "2.0";
 
-#[derive(Debug, Serialize)]
-pub struct Request<'param, T>
+#[derive(Clone)]
+pub enum Request<T>
 where
-    T: Serialize + Send,
+    T: Clone + Serialize,
 {
-    jsonrpc: &'static str,
-    method: &'param str,
-    params: &'param T,
-    id: Id,
+    Owned(RpcRequest<T>),
+    Shared(Arc<RpcRequest<T>>),
 }
 
-unsafe impl<'param, T> Send for Request<'param, T> where T: Serialize + Send {}
+unsafe impl<T> Send for Request<T> where T: Clone + Serialize {}
 
-impl<'param, T> Request<'param, T>
+impl<T> std::ops::Deref for Request<T>
 where
-    T: Serialize + Send,
+    T: Clone + Serialize,
 {
-    pub fn new(method: &'param str, parameter: &'param T, id: &impl Into<Id>) -> Self {
-        Self {
-            jsonrpc: JSONRPC,
-            method,
-            params: parameter,
-            id: id.into(),
+    type Target = RpcRequest<T>;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Owned(inner) => &inner,
+            Self::Shared(inner) => &**inner,
         }
     }
+}
 
-    pub fn id(&self) -> &Id {
-        &self.id
+impl<T> AsRef<RpcRequest<T>> for Request<T>
+where
+    T: Clone + Serialize,
+{
+    fn as_ref(&self) -> &RpcRequest<T> {
+        match self {
+            Self::Owned(inner) => &inner,
+            Self::Shared(inner) => &**inner,
+        }
     }
 }
 
-pub struct RequestOwned<T>
+impl<T> Request<T>
 where
-    T: Clone + Serialize + Send,
+    T: Clone + Serialize,
 {
-    inner: Arc<RequestOwnedInner<T>>,
+    pub fn owned(method: impl AsRef<str>, parameter: &T, id: impl Into<Id>) -> Self {
+        Self::Owned(RpcRequest::new(method, parameter, id))
+    }
+
+    pub fn shared(method: impl AsRef<str>, parameter: &T, id: impl Into<Id>) -> Self {
+        Self::Shared(Arc::new(RpcRequest::new(method, parameter, id)))
+    }
 }
 
-#[derive(Debug, Serialize)]
-struct RequestOwnedInner<T>
+#[derive(Clone, Serialize)]
+pub struct RpcRequest<T>
 where
-    T: Clone + Serialize + Send,
+    T: Clone + Serialize,
 {
     jsonrpc: &'static str,
     method: String,
@@ -55,42 +67,20 @@ where
     id: Id,
 }
 
-impl<T> std::ops::Deref for RequestOwned<T>
+impl<T> RpcRequest<T>
 where
-    T: Clone + Serialize + Send,
+    T: Clone + Serialize,
 {
-    type Target = RequestOwnedInner<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<T> Clone for RequestOwned<T>
-where
-    T: Clone + Serialize + Send,
-{
-    fn clone(&self) -> Self {
+    pub fn new(method: impl AsRef<str>, parameter: &T, id: impl Into<Id>) -> Self {
         Self {
-            inner: self.inner.clone(),
-        }
-    }
-}
-
-impl<T> RequestOwned<T>
-where
-    T: Clone + Serialize + Send,
-{
-    pub fn new(method: &str, parameter: &T, id: &impl Into<Id>) -> Self {
-        let inner = RequestOwnedInner {
             jsonrpc: JSONRPC,
-            method: method.to_owned(),
+            method: method.as_ref().to_owned(),
             params: parameter.to_owned(),
             id: id.into(),
-        };
-
-        Self {
-            inner: Arc::new(inner),
         }
+    }
+
+    pub fn id(&self) -> &Id {
+        &self.id
     }
 }

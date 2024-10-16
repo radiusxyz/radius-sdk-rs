@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 futures = { workspace = true }
 hyper = "0.14.27"
-jsonrpsee = { version = "0.22", features = ["full"] }
+jsonrpsee = { version = "0.22", features = ["server"] }
 reqwest = { version = "0.12", features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

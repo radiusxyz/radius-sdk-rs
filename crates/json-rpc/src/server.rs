@@ -3,13 +3,37 @@ use std::{future::Future, sync::Arc};
 use hyper::{header, Method};
 use jsonrpsee::{
     server::{middleware::http::ProxyGetRequestLayer, Server, ServerHandle},
+    types::{ErrorCode, ErrorObjectOwned, Params},
     IntoResponse, RpcModule,
 };
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
 use url::Url;
 
-use crate::{types::RpcParameter, Error, ErrorKind};
+pub type RpcParameter = Params<'static>;
+
+pub struct RpcError(Box<dyn std::error::Error>);
+
+impl<E> From<E> for RpcError
+where
+    E: std::error::Error + 'static,
+{
+    fn from(value: E) -> Self {
+        Self(Box::new(value))
+    }
+}
+
+impl Into<String> for RpcError {
+    fn into(self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl Into<ErrorObjectOwned> for RpcError {
+    fn into(self) -> ErrorObjectOwned {
+        ErrorObjectOwned::owned::<u8>(ErrorCode::InternalError.code(), self, None)
+    }
+}
 
 pub struct RpcServer<C>
 where
@@ -32,7 +56,7 @@ where
         mut self,
         method: &'static str,
         handler: H,
-    ) -> Result<Self, Error>
+    ) -> Result<Self, RpcServerError>
     where
         H: Fn(RpcParameter, Arc<C>) -> F + Clone + Send + Sync + 'static,
         F: Future<Output = R> + Send + 'static,
@@ -40,15 +64,18 @@ where
     {
         self.rpc_module
             .register_async_method(method, handler)
-            .map_err(|error| (ErrorKind::RegisterRpcMethod, error))?;
+            .map_err(RpcServerError::RegisterRpcMethod)?;
 
         Ok(self)
     }
 
-    pub async fn init(self, rpc_url: impl AsRef<str>) -> Result<ServerHandle, Error> {
-        let rpc_url =
-            Url::parse(rpc_url.as_ref()).map_err(|error| (ErrorKind::BuildServer, error))?;
-        let endpoint = format!("{}:{}", rpc_url.host().unwrap(), rpc_url.port().unwrap());
+    pub async fn init(self, rpc_url: impl AsRef<str>) -> Result<ServerHandle, RpcServerError> {
+        let rpc_url = Url::parse(rpc_url.as_ref()).map_err(ParseUrlError::ParseRpcUrl)?;
+        let rpc_url = format!(
+            "{}:{}",
+            rpc_url.host_str().ok_or(ParseUrlError::InvalidHost)?,
+            rpc_url.port().ok_or(ParseUrlError::InvalidPort)?,
+        );
 
         let cors = CorsLayer::new()
             .allow_methods([Method::GET, Method::POST])
@@ -57,15 +84,52 @@ where
 
         let middleware = ServiceBuilder::new().layer(cors).layer(
             ProxyGetRequestLayer::new("/health", "health")
-                .map_err(|error| (ErrorKind::RpcMiddleware, error))?,
+                .map_err(RpcServerError::RpcMiddleware)?,
         );
 
         let server = Server::builder()
             .set_http_middleware(middleware)
-            .build(endpoint)
+            .build(rpc_url)
             .await
-            .map_err(|error| (ErrorKind::BuildServer, error))?;
+            .map_err(RpcServerError::Initialize)?;
 
         Ok(server.start(self.rpc_module))
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseUrlError {
+    ParseRpcUrl(url::ParseError),
+    InvalidHost,
+    InvalidPort,
+}
+
+impl std::fmt::Display for ParseUrlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for ParseUrlError {}
+
+#[derive(Debug)]
+pub enum RpcServerError {
+    ParseRpcUrl(ParseUrlError),
+    RegisterRpcMethod(jsonrpsee::core::RegisterMethodError),
+    RpcMiddleware(jsonrpsee::server::middleware::http::InvalidPath),
+    Initialize(std::io::Error),
+}
+
+impl std::fmt::Display for RpcServerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for RpcServerError {}
+
+impl From<ParseUrlError> for RpcServerError {
+    fn from(value: ParseUrlError) -> Self {
+        Self::ParseRpcUrl(value)
     }
 }
