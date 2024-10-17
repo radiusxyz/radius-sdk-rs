@@ -68,6 +68,31 @@ impl RpcClient {
         let _ = self.0.post(rpc_url).json(request.as_ref()).send().await;
     }
 
+    /// Send an RPC request and wait for the response.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use serde::{Deserialize, Serialize};
+    ///
+    /// #[derive(Clone, Debug, Deserialize, Serialize)]
+    /// pub struct AddUser {
+    ///     name: String,
+    ///     age: u8,
+    /// }
+    ///
+    /// let user = AddUser {
+    ///     name: "Username".to_owned(),
+    ///     age: 50,
+    /// };
+    ///
+    /// let client = RpcClient::new().unwrap();
+    /// let response: String = client
+    ///     .request("http://127.0.0.1:8000", "add_user", &user, 0)
+    ///     .await
+    ///     .unwrap();
+    ///
+    /// println!("{}", response);
+    /// ```
     pub async fn request<P, R>(
         &self,
         rpc_url: impl AsRef<str>,
@@ -87,6 +112,33 @@ impl RpcClient {
         Ok(response)
     }
 
+    /// Send RPC requests to multiple endpoints. It is a fire-and-forget type of
+    /// request that does not return `Result`.
+    ///
+    /// ```rust
+    /// use serde::{Deserialize, Serialize};
+    ///
+    /// #[derive(Clone, Debug, Deserialize, Serialize)]
+    /// pub struct AddUser {
+    ///     name: String,
+    ///     age: u8,
+    /// }
+    ///
+    /// let user = AddUser {
+    ///     name: "Username".to_owned(),
+    ///     age: 50,
+    /// };
+    ///
+    /// let client = RpcClient::new().unwrap();
+    /// client
+    ///     .multicast(
+    ///         vec!["http://127.0.0.1:8000", "http://127.0.0.1:8001"],
+    ///         "add_user",
+    ///         &user,
+    ///         0,
+    ///     )
+    ///     .await;
+    /// ```
     pub async fn multicast<P>(
         &self,
         rpc_url_list: Vec<impl AsRef<str>>,
@@ -105,6 +157,35 @@ impl RpcClient {
         join_all(tasks).await;
     }
 
+    /// Send RPC requests to multiple endpoints and returns the first successful
+    /// response or an error if none of the responses succeeds.
+    /// ```rust
+    /// use serde::{Deserialize, Serialize};
+    ///
+    /// #[derive(Clone, Debug, Deserialize, Serialize)]
+    /// pub struct AddUser {
+    ///    name: String,
+    ///    age: u8,
+    /// }
+    ///
+    /// let user = AddUser {
+    ///    name: "Username".to_owned(),
+    ///    age: 50,
+    /// };
+    ///
+    /// let client = RpcClient::new().unwrap();
+    /// let response: String = client
+    ///    .fetch(
+    ///        vec!["http://127.0.0.1:8000", "http://127.0.0.1:8001"],
+    ///        "add_user",
+    ///        &user,
+    ///        0,
+    ///    )
+    ///    .await
+    ///    .unwrap();
+    ///
+    /// println!("{}", response);
+    ////// ```
     pub async fn fetch<P, R>(
         &self,
         rpc_url_list: Vec<impl AsRef<str>>,
