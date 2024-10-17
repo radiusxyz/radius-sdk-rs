@@ -10,9 +10,39 @@ use futures::{
 };
 pub use id::Id;
 use request::Request;
-use reqwest::Client;
+use reqwest::{Client, ClientBuilder};
 use response::{Payload, Response};
 use serde::{de::DeserializeOwned, Serialize};
+
+pub struct RpcClientBuilder(ClientBuilder);
+
+impl std::ops::Deref for RpcClientBuilder {
+    type Target = ClientBuilder;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for RpcClientBuilder {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Default for RpcClientBuilder {
+    fn default() -> Self {
+        Self(ClientBuilder::default())
+    }
+}
+
+impl RpcClientBuilder {
+    pub fn build(self) -> Result<RpcClient, RpcClientError> {
+        let http_client = self.0.build().map_err(RpcClientError::BuildClient)?;
+
+        Ok(RpcClient(http_client))
+    }
+}
 
 pub struct RpcClient(Client);
 
@@ -27,6 +57,10 @@ impl Clone for RpcClient {
 }
 
 impl RpcClient {
+    pub fn builder() -> RpcClientBuilder {
+        RpcClientBuilder::default()
+    }
+
     pub fn new() -> Result<Self, RpcClientError> {
         let client = Client::builder()
             .build()
