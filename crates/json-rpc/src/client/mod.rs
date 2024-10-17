@@ -106,6 +106,7 @@ impl RpcClient {
     ///
     /// # Examples
     /// ```rust
+    /// use radius_sdk::json_rpc::Id;
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -121,7 +122,7 @@ impl RpcClient {
     ///
     /// let client = RpcClient::new().unwrap();
     /// let response: String = client
-    ///     .request("http://127.0.0.1:8000", "add_user", &user, 0)
+    ///     .request("http://127.0.0.1:8000", "add_user", &user, Id::Null)
     ///     .await
     ///     .unwrap();
     ///

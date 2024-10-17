@@ -3,6 +3,9 @@ name = "json-rpc"
 version = "0.1.0"
 edition = "2021"
 
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+
 [dependencies]
 futures = { workspace = true }
 hyper = "0.14.27"
