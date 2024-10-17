@@ -25,8 +25,8 @@ where
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Self::Owned(inner) => &inner,
-            Self::Shared(inner) => &**inner,
+            Self::Owned(inner) => inner,
+            Self::Shared(inner) => inner,
         }
     }
 }
@@ -37,8 +37,8 @@ where
 {
     fn as_ref(&self) -> &RpcRequest<T> {
         match self {
-            Self::Owned(inner) => &inner,
-            Self::Shared(inner) => &**inner,
+            Self::Owned(inner) => inner,
+            Self::Shared(inner) => inner,
         }
     }
 }
