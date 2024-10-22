@@ -141,13 +141,11 @@ impl Publisher {
     ) -> Result<FixedBytes<32>, PublisherError> {
         let rollup_id = rollup_id.as_ref().to_owned();
         let cluster_id = cluster_id.as_ref().to_owned();
+        let task_index = task_index as u32;
 
-        let transaction = self.validation_contract.respondToTask(
-            cluster_id,
-            rollup_id,
-            task_index.try_into().unwrap(),
-            response,
-        );
+        let transaction = self
+            .validation_contract
+            .respondToTask(cluster_id, rollup_id, task_index, response);
 
         let pending_transaction = transaction.send().await;
 
