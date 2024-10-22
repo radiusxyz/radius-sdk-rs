@@ -4,6 +4,7 @@ members = [
     "radius-sdk",
     "crates/block-commitment",
     "crates/context",
+    "crates/core",
     "crates/json-rpc",
     "crates/kvstore",
     "crates/kvstore-macros",
@@ -16,6 +17,7 @@ members = [
 [workspace.dependencies]
 alloy = { version = "0.2", default-features = false }
 bincode = "1.3"
+const-hex = "1.12"
 futures = "0.3"
 pin-project = "1.1"
 rand = "0.8"
