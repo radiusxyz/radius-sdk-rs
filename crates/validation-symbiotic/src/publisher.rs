@@ -105,20 +105,21 @@ impl Publisher {
 
     pub async fn register_block_commitment(
         &self,
-        block_commitment: impl AsRef<[u8]>,
-        block_number: u64,
-        rollup_id: impl AsRef<str>,
         cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+        block_number: u64,
+        block_commitment: impl AsRef<[u8]>,
     ) -> Result<FixedBytes<32>, PublisherError> {
-        let block_commitment = Bytes::from_iter(block_commitment.as_ref());
+        let block_commitment = FixedBytes::<32>::try_from(block_commitment.as_ref()).unwrap();
+        let block_number = U256::from(block_number);
         let rollup_id = rollup_id.as_ref().to_owned();
         let cluster_id = cluster_id.as_ref().to_owned();
 
         let transaction = self.validation_contract.createNewTask(
-            block_commitment,
-            block_number,
-            rollup_id,
             cluster_id,
+            rollup_id,
+            block_number,
+            block_commitment,
         );
 
         let pending_transaction = transaction.send().await;
@@ -133,15 +134,20 @@ impl Publisher {
 
     pub async fn respond_to_task(
         &self,
-        task: ValidationServiceManager::Task,
-        task_index: u32,
-        block_commitment: impl AsRef<[u8]>,
+        cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+        task_index: u64,
+        response: bool,
     ) -> Result<FixedBytes<32>, PublisherError> {
-        let block_commitment = Bytes::from_iter(block_commitment.as_ref());
+        let rollup_id = rollup_id.as_ref().to_owned();
+        let cluster_id = cluster_id.as_ref().to_owned();
 
-        let transaction =
-            self.validation_contract
-                .respondToTask(task, task_index, block_commitment);
+        let transaction = self.validation_contract.respondToTask(
+            cluster_id,
+            rollup_id,
+            task_index.try_into().unwrap(),
+            response,
+        );
 
         let pending_transaction = transaction.send().await;
 
@@ -198,13 +204,12 @@ mod tests {
     use crate::subscriber::Subscriber;
 
     async fn callback(event: ValidationServiceManager::NewTaskCreated, _: Arc<()>) {
-        println!("commitment: {:?}", event.commitment);
-        println!("blockNumber: {:?}", event.blockNumber);
-        println!("rollupId: {:?}", event.rollupId);
         println!("clusterId: {:?}", event.clusterId);
+        println!("rollupId: {:?}", event.rollupId);
+        println!("referenceTaskIndex: {:?}", event.referenceTaskIndex);
+        println!("blockNumber: {:?}", event.blockNumber);
+        println!("commitment: {:?}", event.blockCommitment);
         println!("taskCreatedBlock: {:?}", event.taskCreatedBlock);
-
-        println!("taskIndex: {:?}", event.taskIndex);
     }
 
     #[tokio::test]
@@ -234,7 +239,7 @@ mod tests {
         });
 
         publisher
-            .register_block_commitment(&[0u8; 32], 0, "rollup_id", "cluster_id")
+            .register_block_commitment("cluster_id", "rollup_id", 0, &[0u8; 32])
             .await
             .unwrap();
 
@@ -250,16 +255,13 @@ mod tests {
         )
         .unwrap();
 
-        let task = ValidationServiceManager::Task {
-            commitment: Bytes::from_iter(&[0u8; 32]),
-            blockNumber: 0,
-            rollupId: "rollup_id".to_owned(),
-            clusterId: "cluster_id".to_owned(),
-            taskCreatedBlock: 20,
-        };
+        let rollup_id = "rollup_id".to_owned();
+        let cluster_id = "cluster_id".to_owned();
+        let block_number = 0;
+        let response = true;
 
         publisher
-            .respond_to_task(task, 0, Bytes::from_iter(&[0u8; 64]))
+            .respond_to_task(rollup_id, cluster_id, block_number, response)
             .await
             .unwrap();
     }
