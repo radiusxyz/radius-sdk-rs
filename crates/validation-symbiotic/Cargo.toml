@@ -3,11 +3,11 @@ name = "validation-symbiotic"
 version = "0.1.0"
 edition = "2021"
 
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+
 [dependencies]
 alloy = { workspace = true, features = ["full", "reqwest", "signer-local"] }
 chrono = "0.4"
 futures = { workspace = true }
 rand = { workspace = true }
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["full"] }

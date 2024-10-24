@@ -110,10 +110,17 @@ impl Publisher {
         block_number: u64,
         block_commitment: impl AsRef<[u8]>,
     ) -> Result<FixedBytes<32>, PublisherError> {
-        let block_commitment = FixedBytes::<32>::try_from(block_commitment.as_ref()).unwrap();
-        let block_number = U256::from(block_number);
-        let rollup_id = rollup_id.as_ref().to_owned();
         let cluster_id = cluster_id.as_ref().to_owned();
+        let rollup_id = rollup_id.as_ref().to_owned();
+        let block_number = U256::from(block_number);
+        let block_commitment: FixedBytes<32> = {
+            let length = block_commitment.as_ref().len();
+            if length != 32 {
+                return Err(PublisherError::BlockCommitmentLength(length));
+            }
+
+            FixedBytes::from_slice(block_commitment.as_ref())
+        };
 
         let transaction = self.validation_contract.createNewTask(
             cluster_id,
@@ -121,9 +128,7 @@ impl Publisher {
             block_number,
             block_commitment,
         );
-
         let pending_transaction = transaction.send().await;
-
         let transaction_hash = self
             .extract_transaction_hash_from_pending_transaction(pending_transaction)
             .await
@@ -146,9 +151,7 @@ impl Publisher {
         let transaction = self
             .validation_contract
             .respondToTask(cluster_id, rollup_id, task_index, response);
-
         let pending_transaction = transaction.send().await;
-
         let transaction_hash = self
             .extract_transaction_hash_from_pending_transaction(pending_transaction)
             .await
@@ -180,6 +183,7 @@ pub enum PublisherError {
     ParseEthereumRpcUrl(Box<dyn std::error::Error>),
     ParseSigningKey(alloy::signers::local::LocalSignerError),
     ParseContractAddress(String, alloy::hex::FromHexError),
+    BlockCommitmentLength(usize),
     RegisterBlockCommitment(TransactionError),
     RespondToTask(TransactionError),
 }

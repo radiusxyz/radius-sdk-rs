@@ -378,14 +378,21 @@ impl Publisher {
     /// ```
     pub async fn register_block_commitment(
         &self,
-        block_commitment: impl AsRef<[u8]>,
-        block_number: u64,
-        rollup_id: impl AsRef<str>,
         cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+        block_number: u64,
+        block_commitment: impl AsRef<[u8]>,
     ) -> Result<FixedBytes<32>, PublisherError> {
-        let block_commitment = Bytes::from_iter(block_commitment.as_ref());
-        let rollup_id = rollup_id.as_ref().to_owned();
         let cluster_id = cluster_id.as_ref().to_owned();
+        let rollup_id = rollup_id.as_ref().to_owned();
+        let block_commitment = {
+            let length = block_commitment.as_ref().len();
+            if length != 32 {
+                return Err(PublisherError::BlockCommitmentLength(length));
+            }
+
+            Bytes::copy_from_slice(block_commitment.as_ref())
+        };
 
         let transaction =
             self.avs_contract
@@ -448,6 +455,7 @@ pub enum PublisherError {
     AvsRegistrationDigestHash(alloy::contract::Error),
     OperatorSignature(alloy::signers::Error),
     RegisterOperatorOnAvs(TransactionError),
+    BlockCommitmentLength(usize),
     RegisterBlockCommitment(TransactionError),
     RespondToTask(TransactionError),
 }
