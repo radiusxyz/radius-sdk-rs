@@ -2,14 +2,14 @@ mod id;
 mod request;
 mod response;
 
-use std::pin::Pin;
+use std::{pin::Pin, time::Duration};
 
 use futures::{
     future::{join_all, select_ok, Fuse},
     FutureExt,
 };
 pub use id::Id;
-use request::Request;
+use request::{Request, RpcRequest};
 use reqwest::{Client, ClientBuilder};
 use response::{Payload, Response};
 use serde::{de::DeserializeOwned, Serialize};
@@ -32,7 +32,7 @@ impl std::ops::DerefMut for RpcClientBuilder {
 
 impl Default for RpcClientBuilder {
     fn default() -> Self {
-        Self(ClientBuilder::default())
+        Self(ClientBuilder::default().timeout(Duration::from_secs(10)))
     }
 }
 
@@ -40,11 +40,15 @@ impl RpcClientBuilder {
     pub fn build(self) -> Result<RpcClient, RpcClientError> {
         let http_client = self.0.build().map_err(RpcClientError::BuildClient)?;
 
-        Ok(RpcClient(http_client))
+        Ok(RpcClient {
+            client: http_client,
+        })
     }
 }
 
-pub struct RpcClient(Client);
+pub struct RpcClient {
+    client: Client,
+}
 
 unsafe impl Send for RpcClient {}
 
@@ -52,7 +56,9 @@ unsafe impl Sync for RpcClient {}
 
 impl Clone for RpcClient {
     fn clone(&self) -> Self {
-        Self(self.0.clone())
+        Self {
+            client: self.client.clone(),
+        }
     }
 }
 
@@ -62,21 +68,21 @@ impl RpcClient {
     }
 
     pub fn new() -> Result<Self, RpcClientError> {
-        let client = Client::builder()
-            .build()
-            .map_err(RpcClientError::BuildClient)?;
-
-        Ok(Self(client))
+        Self::builder().build()
     }
 
-    async fn send<P, R>(&self, rpc_url: String, request: Request<P>) -> Result<R, RpcClientError>
+    async fn request_inner<P, R>(
+        &self,
+        rpc_url: impl AsRef<str>,
+        request: impl AsRef<RpcRequest<P>>,
+    ) -> Result<R, RpcClientError>
     where
         P: Clone + Serialize + Send,
         R: DeserializeOwned,
     {
         let response: Response<R> = self
-            .0
-            .post(rpc_url)
+            .client
+            .post(rpc_url.as_ref())
             .json(request.as_ref())
             .send()
             .await
@@ -85,7 +91,7 @@ impl RpcClient {
             .await
             .map_err(RpcClientError::ParseResponse)?;
 
-        if request.id() != response.id() {
+        if request.as_ref().id() != response.id() {
             return Err(RpcClientError::IdMismatch);
         }
 
@@ -95,11 +101,16 @@ impl RpcClient {
         }
     }
 
-    async fn fire_and_forget<P>(&self, rpc_url: String, request: Request<P>)
+    async fn fire_and_forget<P>(&self, rpc_url: impl AsRef<str>, request: impl AsRef<RpcRequest<P>>)
     where
         P: Clone + Serialize + Send,
     {
-        let _ = self.0.post(rpc_url).json(request.as_ref()).send().await;
+        let _ = self
+            .client
+            .post(rpc_url.as_ref())
+            .json(request.as_ref())
+            .send()
+            .await;
     }
 
     /// Send an RPC request and wait for the response.
@@ -140,11 +151,8 @@ impl RpcClient {
         R: DeserializeOwned,
     {
         let request = Request::owned(method, parameter, id);
-        let response = self
-            .send::<P, R>(rpc_url.as_ref().to_owned(), request)
-            .await?;
 
-        Ok(response)
+        self.request_inner(rpc_url, request).await
     }
 
     /// Send RPC requests to multiple endpoints. It is a fire-and-forget type of
@@ -186,7 +194,7 @@ impl RpcClient {
         let request = Request::shared(method, parameter, id);
         let tasks: Vec<_> = rpc_url_list
             .into_iter()
-            .map(|rpc_url| self.fire_and_forget(rpc_url.as_ref().to_owned(), request.clone()))
+            .map(|rpc_url| self.fire_and_forget(rpc_url, request.clone()))
             .collect();
 
         join_all(tasks).await;
@@ -235,12 +243,7 @@ impl RpcClient {
         let request = Request::shared(method, parameter, id);
         let fused_futures: Vec<Pin<Box<Fuse<_>>>> = rpc_url_list
             .into_iter()
-            .map(|rpc_url| {
-                Box::pin(
-                    self.send::<P, R>(rpc_url.as_ref().to_owned(), request.clone())
-                        .fuse(),
-                )
-            })
+            .map(|rpc_url| Box::pin(self.request_inner::<P, R>(rpc_url, request.clone()).fuse()))
             .collect();
         let (response, _): (R, Vec<_>) = select_ok(fused_futures)
             .await
