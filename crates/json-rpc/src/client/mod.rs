@@ -2,7 +2,7 @@ mod id;
 mod request;
 mod response;
 
-use std::{pin::Pin, time::Duration};
+use std::{pin::Pin, str::FromStr, time::Duration};
 
 use futures::{
     future::{join_all, select_ok, Fuse},
@@ -13,6 +13,7 @@ use request::{Request, RpcRequest};
 use reqwest::{Client, ClientBuilder};
 use response::{Payload, Response};
 use serde::{de::DeserializeOwned, Serialize};
+use url::Url;
 
 pub struct RpcClientBuilder(ClientBuilder);
 
@@ -71,6 +72,17 @@ impl RpcClient {
         Self::builder().build()
     }
 
+    fn parse_url(rpc_url: impl AsRef<str>) -> Result<Url, RpcClientError> {
+        match Url::from_str(rpc_url.as_ref()) {
+            Ok(url) => Ok(url),
+            Err(url::ParseError::RelativeUrlWithoutBase) => {
+                Url::from_str(&format!("http://{}", rpc_url.as_ref()))
+                    .map_err(RpcClientError::ParseRpcUrl)
+            }
+            Err(others) => Err(RpcClientError::ParseRpcUrl(others)),
+        }
+    }
+
     async fn request_inner<P, R>(
         &self,
         rpc_url: impl AsRef<str>,
@@ -80,9 +92,10 @@ impl RpcClient {
         P: Clone + Serialize + Send,
         R: DeserializeOwned,
     {
+        let rpc_url = Self::parse_url(rpc_url)?;
         let response: Response<R> = self
             .client
-            .post(rpc_url.as_ref())
+            .post(rpc_url)
             .json(request.as_ref())
             .send()
             .await
@@ -256,6 +269,7 @@ impl RpcClient {
 #[derive(Debug)]
 pub enum RpcClientError {
     BuildClient(reqwest::Error),
+    ParseRpcUrl(url::ParseError),
     Send(reqwest::Error),
     ParseResponse(reqwest::Error),
     IdMismatch,
