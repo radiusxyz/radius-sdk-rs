@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 block-commitment = { path = "../crates/block-commitment", optional = true }
 context = { path = "../crates/context", optional = true }
-core = { path = "../crates/core" }
 json-rpc = { path = "../crates/json-rpc", optional = true }
 kvstore = { path = "../crates/kvstore", optional = true, default-features = false }
 kvstore-macros = { path = "../crates/kvstore-macros", optional = true }

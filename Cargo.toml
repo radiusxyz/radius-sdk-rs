@@ -4,7 +4,6 @@ members = [
     "radius-sdk",
     "crates/block-commitment",
     "crates/context",
-    "crates/core",
     "crates/json-rpc",
     "crates/kvstore",
     "crates/kvstore-macros",
