@@ -8,7 +8,6 @@ use jsonrpsee::{
 };
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
-use url::Url;
 
 pub type RpcParameter = Params<'static>;
 
@@ -70,13 +69,6 @@ where
     }
 
     pub async fn init(self, rpc_url: impl AsRef<str>) -> Result<ServerHandle, RpcServerError> {
-        let rpc_url = Url::parse(rpc_url.as_ref()).map_err(ParseUrlError::ParseRpcUrl)?;
-        let rpc_url = format!(
-            "{}:{}",
-            rpc_url.host_str().ok_or(ParseUrlError::InvalidHost)?,
-            rpc_url.port().ok_or(ParseUrlError::InvalidPort)?,
-        );
-
         let cors = CorsLayer::new()
             .allow_methods([Method::GET, Method::POST])
             .allow_origin(Any)
@@ -89,7 +81,7 @@ where
 
         let server = Server::builder()
             .set_http_middleware(middleware)
-            .build(rpc_url)
+            .build(rpc_url.as_ref())
             .await
             .map_err(RpcServerError::Initialize)?;
 
@@ -98,23 +90,7 @@ where
 }
 
 #[derive(Debug)]
-pub enum ParseUrlError {
-    ParseRpcUrl(url::ParseError),
-    InvalidHost,
-    InvalidPort,
-}
-
-impl std::fmt::Display for ParseUrlError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for ParseUrlError {}
-
-#[derive(Debug)]
 pub enum RpcServerError {
-    ParseRpcUrl(ParseUrlError),
     RegisterRpcMethod(jsonrpsee::core::RegisterMethodError),
     RpcMiddleware(jsonrpsee::server::middleware::http::InvalidPath),
     Initialize(std::io::Error),
@@ -127,9 +103,3 @@ impl std::fmt::Display for RpcServerError {
 }
 
 impl std::error::Error for RpcServerError {}
-
-impl From<ParseUrlError> for RpcServerError {
-    fn from(value: ParseUrlError) -> Self {
-        Self::ParseRpcUrl(value)
-    }
-}
