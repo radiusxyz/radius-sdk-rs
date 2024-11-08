@@ -2,7 +2,7 @@ mod id;
 mod request;
 mod response;
 
-use std::{pin::Pin, str::FromStr, time::Duration};
+use std::{pin::Pin, time::Duration};
 
 use futures::{
     future::{join_all, select_ok, Fuse},
@@ -72,17 +72,6 @@ impl RpcClient {
         Self::builder().build()
     }
 
-    fn parse_url(rpc_url: impl AsRef<str>) -> Result<Url, RpcClientError> {
-        match Url::from_str(rpc_url.as_ref()) {
-            Ok(url) => Ok(url),
-            Err(url::ParseError::RelativeUrlWithoutBase) => {
-                Url::from_str(&format!("http://{}", rpc_url.as_ref()))
-                    .map_err(RpcClientError::ParseRpcUrl)
-            }
-            Err(others) => Err(RpcClientError::ParseRpcUrl(others)),
-        }
-    }
-
     async fn request_inner<P, R>(
         &self,
         rpc_url: impl AsRef<str>,
@@ -92,7 +81,7 @@ impl RpcClient {
         P: Clone + Serialize + Send,
         R: DeserializeOwned,
     {
-        let rpc_url = Self::parse_url(rpc_url)?;
+        let rpc_url = Url::parse(rpc_url.as_ref()).map_err(RpcClientError::ParseRpcUrl)?;
         let response: Response<R> = self
             .client
             .post(rpc_url)
