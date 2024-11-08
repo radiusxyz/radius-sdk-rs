@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{chain_type::*, error::SignatureError, Builder};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, Deserialize, Serialize)]
 #[serde(try_from = "AddressType")]
 pub struct Address(Vec<u8>);
 
