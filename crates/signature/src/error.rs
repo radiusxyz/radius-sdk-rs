@@ -1,5 +1,6 @@
 #[derive(Debug)]
 pub enum SignatureError {
+    UnsupportedChainType(String),
     DeserializeAddress(const_hex::FromHexError),
     DeserializeSignature(const_hex::FromHexError),
     SerializeMessage(bincode::Error),

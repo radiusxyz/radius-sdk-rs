@@ -4,14 +4,25 @@ use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{address::Address, signer::PrivateKeySigner, traits::*};
+use crate::{address::Address, signer::PrivateKeySigner, traits::*, SignatureError};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[serde(try_from = "String")]
 pub enum ChainType {
     Ethereum,
 }
 
+impl TryFrom<String> for ChainType {
+    type Error = SignatureError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "ethereum" => Ok(Self::Ethereum),
+            _others => Err(SignatureError::UnsupportedChainType(value)),
+        }
+    }
+}
 impl ChainType {
     pub(crate) fn address_builder(&self) -> impl Builder<Output = Address> {
         match self {
