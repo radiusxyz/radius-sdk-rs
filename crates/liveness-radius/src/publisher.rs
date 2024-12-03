@@ -3,6 +3,7 @@ use std::str::FromStr;
 use alloy::{
     contract,
     network::{Ethereum, EthereumWallet},
+    primitives::{Address, FixedBytes, Uint},
     providers::{
         fillers::{ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller},
         Identity, PendingTransactionBuilder, Provider, ProviderBuilder, RootProvider,

@@ -7,14 +7,15 @@ use std::{
 
 use alloy::{
     eips::BlockNumberOrTag,
+    primitives::Address,
     providers::{Provider, ProviderBuilder, WsConnect},
-    rpc::types::Filter,
+    rpc::types::{Block, Filter, Log},
     sol_types::SolEvent,
 };
 use futures::{stream::select_all, Stream, StreamExt};
 use pin_project::pin_project;
 
-use crate::types::*;
+use crate::types::{Events, Liveness};
 
 pub struct Subscriber {
     connection_detail: WsConnect,
@@ -183,44 +184,51 @@ impl Stream for EventStream {
 impl EventStream {
     fn decode_log(log: Log) -> Option<Events> {
         match log.topic0() {
-            Some(&Liveness::InitializeCluster::SIGNATURE_HASH) => {
-                match log.log_decode::<Liveness::InitializeCluster>().ok() {
-                    Some(log) => {
-                        Some(Liveness::LivenessEvents::InitializeCluster(log.inner.data).into())
-                    }
-                    None => None,
-                }
-            }
-            Some(&Liveness::RegisterSequencer::SIGNATURE_HASH) => {
-                match log.log_decode::<Liveness::RegisterSequencer>().ok() {
-                    Some(log) => {
-                        Some(Liveness::LivenessEvents::RegisterSequencer(log.inner.data).into())
-                    }
-                    None => None,
-                }
-            }
-            Some(&Liveness::DeregisterSequencer::SIGNATURE_HASH) => {
-                match log.log_decode::<Liveness::DeregisterSequencer>().ok() {
-                    Some(log) => {
-                        Some(Liveness::LivenessEvents::DeregisterSequencer(log.inner.data).into())
-                    }
-                    None => None,
-                }
-            }
-            Some(&Liveness::AddRollup::SIGNATURE_HASH) => {
-                match log.log_decode::<Liveness::AddRollup>().ok() {
-                    Some(log) => Some(Liveness::LivenessEvents::AddRollup(log.inner.data).into()),
-                    None => None,
-                }
-            }
-            Some(&Liveness::RegisterRollupExecutor::SIGNATURE_HASH) => {
-                match log.log_decode::<Liveness::RegisterRollupExecutor>().ok() {
-                    Some(log) => Some(
-                        Liveness::LivenessEvents::RegisterRollupExecutor(log.inner.data).into(),
-                    ),
-                    None => None,
-                }
-            }
+            Some(&Liveness::InitializeCluster::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::InitializeCluster>()
+                .ok()
+                .map(|log_decoded| {
+                    Events::LivenessEvents(
+                        Liveness::LivenessEvents::InitializeCluster(log_decoded.inner.data),
+                        log,
+                    )
+                }),
+            Some(&Liveness::RegisterSequencer::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::RegisterSequencer>()
+                .ok()
+                .map(|log_decoded| {
+                    Events::LivenessEvents(
+                        Liveness::LivenessEvents::RegisterSequencer(log_decoded.inner.data),
+                        log,
+                    )
+                }),
+            Some(&Liveness::DeregisterSequencer::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::DeregisterSequencer>()
+                .ok()
+                .map(|log_decoded| {
+                    Events::LivenessEvents(
+                        Liveness::LivenessEvents::DeregisterSequencer(log_decoded.inner.data),
+                        log,
+                    )
+                }),
+            Some(&Liveness::AddRollup::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::AddRollup>()
+                .ok()
+                .map(|log_decoded| {
+                    Events::LivenessEvents(
+                        Liveness::LivenessEvents::AddRollup(log_decoded.inner.data),
+                        log,
+                    )
+                }),
+            Some(&Liveness::RegisterRollupExecutor::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::RegisterRollupExecutor>()
+                .ok()
+                .map(|log_decoded| {
+                    Events::LivenessEvents(
+                        Liveness::LivenessEvents::RegisterRollupExecutor(log_decoded.inner.data),
+                        log,
+                    )
+                }),
             _ => None,
         }
     }
