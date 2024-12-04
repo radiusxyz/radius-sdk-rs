@@ -81,20 +81,20 @@ impl Subscriber {
     ///         Events::Block(block) => {
     ///             // Handle Ethereum block creation event.
     ///         }
-    ///         Events::LivenessEvents((event, log)) => match event {
-    ///             LivenessEvents::InitializeCluster => {
+    ///         Events::LivenessEvents(liveness_event, log) => match liveness_event {
+    ///             LivenessEvents::InitializeCluster(event) => {
     ///                 // Handle `InitializeCluster` event.
     ///             }
-    ///             LivenessEvents::RegisterSequencer => {
+    ///             LivenessEvents::RegisterSequencer(event) => {
     ///                 // Handle `RegisterSequencer` event.
     ///             }
-    ///             LivenessEvents::DeregisterSequencer => {
+    ///             LivenessEvents::DeregisterSequencer(event) => {
     ///                 // Handle `DeregisterSequencer` event.
     ///             }
-    ///             LivenessEvents::AddRollup => {
+    ///             LivenessEvents::AddRollup(event) => {
     ///                 // Handle `AddRollup` event.
     ///             }
-    ///             LivenessEvents::RegisterRollupExecutor => {
+    ///             LivenessEvents::RegisterRollupExecutor(event) => {
     ///                 // Handle `RegisterRollupExecutor` event.
     ///             }
     ///         },
