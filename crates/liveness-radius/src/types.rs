@@ -1,7 +1,4 @@
-pub use alloy::{
-    primitives::*,
-    rpc::types::{Block, Log},
-};
+pub use alloy::{primitives, rpc};
 
 alloy::sol!(
     #[allow(missing_docs)]
@@ -11,12 +8,6 @@ alloy::sol!(
 );
 
 pub enum Events {
-    Block(Block),
-    LivenessEvents(Liveness::LivenessEvents),
-}
-
-impl From<Liveness::LivenessEvents> for Events {
-    fn from(value: Liveness::LivenessEvents) -> Self {
-        Self::LivenessEvents(value)
-    }
+    Block(rpc::types::Block),
+    LivenessEvents(Liveness::LivenessEvents, rpc::types::Log),
 }
