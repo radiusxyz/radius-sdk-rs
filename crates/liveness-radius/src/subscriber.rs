@@ -81,7 +81,7 @@ impl Subscriber {
     ///         Events::Block(block) => {
     ///             // Handle Ethereum block creation event.
     ///         }
-    ///         Events::LivenessEvents(contract_events) => match contract_events {
+    ///         Events::LivenessEvents((event, log)) => match event {
     ///             LivenessEvents::InitializeCluster => {
     ///                 // Handle `InitializeCluster` event.
     ///             }
