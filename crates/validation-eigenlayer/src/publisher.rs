@@ -4,7 +4,10 @@ use alloy::{
     contract,
     network::{Ethereum, EthereumWallet},
     providers::{
-        fillers::{ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller},
+        fillers::{
+            BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller,
+            WalletFiller,
+        },
         Identity, PendingTransactionBuilder, ProviderBuilder, RootProvider, WalletProvider,
     },
     signers::{k256::ecdsa::SigningKey, local::LocalSigner, Signer},
@@ -16,7 +19,10 @@ use crate::types::*;
 
 type EthereumHttpProvider = FillProvider<
     JoinFill<
-        JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+        JoinFill<
+            Identity,
+            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+        >,
         WalletFiller<EthereumWallet>,
     >,
     RootProvider<Http<Client>>,
@@ -28,7 +34,10 @@ type DelegationManagerContract = DelegationManager::DelegationManagerInstance<
     Http<Client>,
     FillProvider<
         JoinFill<
-            JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
             WalletFiller<EthereumWallet>,
         >,
         RootProvider<Http<Client>>,
@@ -41,7 +50,10 @@ type AvsDirectoryContract = AVSDirectory::AVSDirectoryInstance<
     Http<Client>,
     FillProvider<
         JoinFill<
-            JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
             WalletFiller<EthereumWallet>,
         >,
         RootProvider<Http<Client>>,
@@ -54,7 +66,10 @@ type EcdsaStakeRegistryContract = EcdsaStakeRegistry::EcdsaStakeRegistryInstance
     Http<Client>,
     FillProvider<
         JoinFill<
-            JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
             WalletFiller<EthereumWallet>,
         >,
         RootProvider<Http<Client>>,
@@ -67,7 +82,10 @@ type AvsContract = Avs::AvsInstance<
     Http<Client>,
     FillProvider<
         JoinFill<
-            JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
             WalletFiller<EthereumWallet>,
         >,
         RootProvider<Http<Client>>,
@@ -199,10 +217,10 @@ impl Publisher {
         &self.signer
     }
 
-    async fn extract_transaction_hash_from_pending_transaction<'a>(
-        &'a self,
+    async fn extract_transaction_hash_from_pending_transaction(
+        &self,
         pending_transaction: Result<
-            PendingTransactionBuilder<'a, Http<Client>, Ethereum>,
+            PendingTransactionBuilder<Http<Client>, Ethereum>,
             contract::Error,
         >,
     ) -> Result<FixedBytes<32>, TransactionError> {
@@ -252,7 +270,7 @@ impl Publisher {
     /// println!("{:?}", transaction_hash);
     /// ```
     pub async fn register_as_operator(&self) -> Result<FixedBytes<32>, PublisherError> {
-        let operator_details = DelegationManager::OperatorDetails {
+        let operator_details = IDelegationManager::OperatorDetails {
             earningsReceiver: self.address(),
             delegationApprover: Address::ZERO,
             stakerOptOutWindowBlocks: 0,
@@ -327,7 +345,7 @@ impl Publisher {
             .await
             .map_err(PublisherError::OperatorSignature)?;
 
-        let operator_signature = EcdsaStakeRegistry::SignatureWithSaltAndExpiry {
+        let operator_signature = ISignatureUtils::SignatureWithSaltAndExpiry {
             signature: signature.as_bytes().into(),
             salt,
             expiry,
@@ -408,7 +426,7 @@ impl Publisher {
 
     pub async fn respond_to_task(
         &self,
-        task: Avs::Task,
+        task: IValidationServiceManager::Task,
         task_index: u32,
         block_commitment: impl AsRef<[u8]>,
     ) -> Result<FixedBytes<32>, PublisherError> {
@@ -429,7 +447,7 @@ impl Publisher {
 #[derive(Debug)]
 pub enum TransactionError {
     SendTransaction(alloy::contract::Error),
-    GetReceipt(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    GetReceipt(alloy::providers::PendingTransactionError),
     FailedTransaction(FixedBytes<32>),
     EmptyLogs,
     DecodeLogData(alloy::sol_types::Error),

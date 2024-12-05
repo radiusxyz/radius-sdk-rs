@@ -8,6 +8,6 @@ alloy::sol!(
 );
 
 pub enum Events {
-    Block(rpc::types::Block),
+    Block(rpc::types::Header),
     LivenessEvents(Liveness::LivenessEvents, rpc::types::Log),
 }
