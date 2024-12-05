@@ -5,7 +5,10 @@ use alloy::{
     network::{Ethereum, EthereumWallet},
     primitives::{Address, FixedBytes, Uint},
     providers::{
-        fillers::{ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller},
+        fillers::{
+            BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller,
+            WalletFiller,
+        },
         Identity, PendingTransactionBuilder, Provider, ProviderBuilder, RootProvider,
         WalletProvider,
     },
@@ -13,13 +16,15 @@ use alloy::{
     sol_types::SolEvent,
     transports::http::{reqwest::Url, Client, Http},
 };
-use Liveness::RollupInfo;
 
 use crate::types::*;
 
 type EthereumHttpProvider = FillProvider<
     JoinFill<
-        JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+        JoinFill<
+            Identity,
+            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+        >,
         WalletFiller<EthereumWallet>,
     >,
     RootProvider<Http<Client>>,
@@ -31,7 +36,10 @@ type LivenessContract = Liveness::LivenessInstance<
     Http<Client>,
     FillProvider<
         JoinFill<
-            JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
             WalletFiller<EthereumWallet>,
         >,
         RootProvider<Http<Client>>,
@@ -239,12 +247,12 @@ impl Publisher {
                 PublisherError::ParseAddress(rollup_owner_address.as_ref().to_owned(), error)
             })?;
 
-        let validation_info = Liveness::ValidationInfo {
+        let validation_info = ILivenessRadius::ValidationInfo {
             platform: validation_info.platform,
             serviceProvider: validation_info.service_provider,
         };
 
-        let add_rollup_info: Liveness::AddRollupInfo = Liveness::AddRollupInfo {
+        let add_rollup_info = ILivenessRadius::AddRollupInfo {
             rollupId: rollup_id.as_ref().to_string(),
             owner: rollup_owner_address,
             rollupType: rollup_type.as_ref().to_string(),
@@ -484,7 +492,7 @@ impl Publisher {
         &self,
         cluster_id: impl AsRef<str>,
         block_number: u64,
-    ) -> Result<Vec<RollupInfo>, PublisherError> {
+    ) -> Result<Vec<ILivenessRadius::RollupInfo>, PublisherError> {
         let executor_list = self
             .liveness_contract
             .getRollupInfoList(cluster_id.as_ref().to_string())
@@ -502,7 +510,7 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
         block_number: u64,
-    ) -> Result<RollupInfo, PublisherError> {
+    ) -> Result<ILivenessRadius::RollupInfo, PublisherError> {
         let rollup_info = self
             .liveness_contract
             .getRollupInfo(
@@ -622,10 +630,10 @@ impl Publisher {
         Ok(is_registered_sequencer)
     }
 
-    async fn extract_event_from_pending_transaction<'a, T>(
-        &'a self,
+    async fn extract_event_from_pending_transaction<T>(
+        &self,
         pending_transaction: Result<
-            PendingTransactionBuilder<'a, Http<Client>, Ethereum>,
+            PendingTransactionBuilder<Http<Client>, Ethereum>,
             contract::Error,
         >,
     ) -> Result<T, TransactionError>
@@ -660,7 +668,7 @@ impl Publisher {
 #[derive(Debug)]
 pub enum TransactionError {
     SendTransaction(alloy::contract::Error),
-    GetReceipt(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    GetReceipt(alloy::providers::PendingTransactionError),
     FailedTransaction(FixedBytes<32>),
     EmptyLogs,
     DecodeLogData(alloy::sol_types::Error),

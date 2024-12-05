@@ -9,7 +9,7 @@ use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
     providers::{Provider, ProviderBuilder, WsConnect},
-    rpc::types::{Block, Filter, Log},
+    rpc::types::{Filter, Header, Log},
     sol_types::SolEvent,
 };
 use futures::{stream::select_all, Stream, StreamExt};
@@ -147,12 +147,12 @@ impl Subscriber {
 
 #[pin_project(project = StreamType)]
 enum EventStream {
-    BlockStream(Pin<Box<dyn Stream<Item = Block> + Send>>),
+    BlockStream(Pin<Box<dyn Stream<Item = Header> + Send>>),
     LivenessEventStream(Pin<Box<dyn Stream<Item = Log> + Send>>),
 }
 
-impl From<Pin<Box<dyn Stream<Item = Block> + Send>>> for EventStream {
-    fn from(value: Pin<Box<dyn Stream<Item = Block> + Send>>) -> Self {
+impl From<Pin<Box<dyn Stream<Item = Header> + Send>>> for EventStream {
+    fn from(value: Pin<Box<dyn Stream<Item = Header> + Send>>) -> Self {
         Self::BlockStream(value)
     }
 }

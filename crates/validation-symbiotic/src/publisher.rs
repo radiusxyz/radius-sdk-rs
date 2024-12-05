@@ -4,7 +4,10 @@ use alloy::{
     contract,
     network::{Ethereum, EthereumWallet},
     providers::{
-        fillers::{ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller},
+        fillers::{
+            BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller,
+            WalletFiller,
+        },
         Identity, PendingTransactionBuilder, ProviderBuilder, RootProvider, WalletProvider,
     },
     signers::local::LocalSigner,
@@ -15,7 +18,10 @@ use crate::types::*;
 
 type EthereumHttpProvider = FillProvider<
     JoinFill<
-        JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+        JoinFill<
+            Identity,
+            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+        >,
         WalletFiller<EthereumWallet>,
     >,
     RootProvider<Http<Client>>,
@@ -27,7 +33,10 @@ type ValidationContract = ValidationServiceManager::ValidationServiceManagerInst
     Http<Client>,
     FillProvider<
         JoinFill<
-            JoinFill<JoinFill<JoinFill<Identity, GasFiller>, NonceFiller>, ChainIdFiller>,
+            JoinFill<
+                Identity,
+                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+            >,
             WalletFiller<EthereumWallet>,
         >,
         RootProvider<Http<Client>>,
@@ -82,10 +91,10 @@ impl Publisher {
         self.provider.default_signer_address()
     }
 
-    async fn extract_transaction_hash_from_pending_transaction<'a>(
-        &'a self,
+    async fn extract_transaction_hash_from_pending_transaction(
+        &self,
         pending_transaction: Result<
-            PendingTransactionBuilder<'a, Http<Client>, Ethereum>,
+            PendingTransactionBuilder<Http<Client>, Ethereum>,
             contract::Error,
         >,
     ) -> Result<FixedBytes<32>, TransactionError> {
@@ -164,7 +173,7 @@ impl Publisher {
 #[derive(Debug)]
 pub enum TransactionError {
     SendTransaction(alloy::contract::Error),
-    GetReceipt(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    GetReceipt(alloy::providers::PendingTransactionError),
     FailedTransaction(FixedBytes<32>),
     EmptyLogs,
     DecodeLogData(alloy::sol_types::Error),
