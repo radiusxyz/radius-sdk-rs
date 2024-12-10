@@ -56,6 +56,7 @@ pub struct Publisher {
 pub struct ValidationInfo {
     platform: String,
     service_provider: String,
+    validation_service_manager: Address,
 }
 
 impl Publisher {
@@ -241,15 +242,21 @@ impl Publisher {
         order_commitment_type: impl AsRef<str>,
         encrypted_transaction_type: impl AsRef<str>,
         validation_info: ValidationInfo,
+        executor_address: impl AsRef<str>,
     ) -> Result<Liveness::AddRollup, PublisherError> {
         let rollup_owner_address =
             Address::from_str(rollup_owner_address.as_ref()).map_err(|error| {
                 PublisherError::ParseAddress(rollup_owner_address.as_ref().to_owned(), error)
             })?;
 
+        let executor_address = Address::from_str(executor_address.as_ref()).map_err(|error| {
+            PublisherError::ParseAddress(executor_address.as_ref().to_owned(), error)
+        })?;
+
         let validation_info = ILivenessRadius::ValidationInfo {
             platform: validation_info.platform,
             serviceProvider: validation_info.service_provider,
+            validationServiceManager: validation_info.validation_service_manager,
         };
 
         let add_rollup_info = ILivenessRadius::AddRollupInfo {
@@ -259,6 +266,7 @@ impl Publisher {
             encryptedTransactionType: encrypted_transaction_type.as_ref().to_string(),
             validationInfo: validation_info,
             orderCommitmentType: order_commitment_type.as_ref().to_string(),
+            executorAddress: executor_address,
         };
 
         let contract_call = self
