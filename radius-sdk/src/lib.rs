@@ -1,5 +1,4 @@
-pub use core;
-
+pub mod types;
 #[cfg(any(feature = "full", feature = "block-commitment"))]
 pub use block_commitment;
 #[cfg(any(feature = "full", feature = "context"))]
@@ -10,7 +9,6 @@ pub use json_rpc;
 pub use kvstore;
 #[cfg(any(feature = "full", feature = "liveness-radius"))]
 pub use liveness_radius;
-#[cfg(any(feature = "full", feature = "signature"))]
 pub use signature;
 #[cfg(any(feature = "full", feature = "validation-eigenlayer"))]
 pub use validation_eigenlayer;
