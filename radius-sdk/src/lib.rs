@@ -1,7 +1,3 @@
-pub use core;
-
-#[cfg(any(feature = "full", feature = "block-commitment"))]
-pub use block_commitment;
 #[cfg(any(feature = "full", feature = "context"))]
 pub use context;
 #[cfg(any(feature = "full", feature = "json-rpc"))]
