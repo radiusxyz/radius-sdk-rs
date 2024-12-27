@@ -177,7 +177,7 @@ impl From<ResourceType> for i32 {
 #[repr(C)]
 pub struct ResourceLimit {
     pub soft_limit: u64, // The current system resource limit.
-    pub hard_limit: u64, // The maximum limit set by
+    pub hard_limit: u64, // The maximum limit set by the system.
 }
 
 impl ResourceLimit {
