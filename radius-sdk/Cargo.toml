@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-block-commitment = { path = "../crates/block-commitment", optional = true }
 context = { path = "../crates/context", optional = true }
 json-rpc = { path = "../crates/json-rpc", optional = true }
 kvstore = { path = "../crates/kvstore", optional = true, default-features = false }
@@ -14,8 +13,10 @@ signature = { path = "../crates/signature", optional = true }
 validation-eigenlayer = { path = "../crates/validation-eigenlayer", default-features = false, optional = true }
 validation-symbiotic = { path = "../crates/validation-symbiotic", default-features = false, optional = true }
 
+libc = "0.2"
+
 [features]
-full = ["dep:block-commitment", "dep:context", "dep:json-rpc", "kvstore/json", "dep:liveness-radius", "dep:signature", "dep:validation-eigenlayer", "dep:validation-symbiotic"]
+full = ["dep:context", "dep:json-rpc", "kvstore/json", "dep:liveness-radius", "dep:signature", "dep:validation-eigenlayer", "dep:validation-symbiotic"]
 context = ["dep:context"]
 json-rpc = ["dep:json-rpc"]
 kvstore-bytes = ["kvstore/bytes", "dep:kvstore-macros"]
