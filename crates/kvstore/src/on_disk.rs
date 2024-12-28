@@ -13,6 +13,7 @@ use crate::data_type::{deserialize, serialize};
 static mut KVSTORE: MaybeUninit<KvStore> = MaybeUninit::uninit();
 static INIT: Once = Once::new();
 
+#[allow(static_mut_refs)]
 pub fn kvstore() -> Result<&'static KvStore, KvStoreError> {
     match INIT.is_completed() {
         true => unsafe { Ok(KVSTORE.assume_init_ref()) },
@@ -92,6 +93,7 @@ impl KvStore {
         })
     }
 
+    #[allow(static_mut_refs)]
     pub fn init(self) {
         unsafe {
             INIT.call_once(|| {
