@@ -21,27 +21,74 @@ pub fn kvstore() -> Result<&'static KvStore, KvStoreError> {
     }
 }
 
-pub struct KvStoreOptions {
+pub struct KvStoreBuilder {
     database_options: Options,
     transaction_database_options: TransactionDBOptions,
 }
 
-impl Default for KvStoreOptions {
+impl Default for KvStoreBuilder {
     fn default() -> Self {
+        let mut database_options = Options::default();
+        database_options.create_if_missing(true);
+
         Self {
-            database_options: Options::default(),
+            database_options,
             transaction_database_options: TransactionDBOptions::default(),
         }
     }
 }
 
-impl KvStoreOptions {
-    pub fn database_options(&mut self) -> &mut Options {
-        &mut self.database_options
+impl KvStoreBuilder {
+    /// https://docs.rs/rocksdb/0.22.0/rocksdb/struct.Options.html#method.increase_parallelism
+    pub fn increase_parallelism(mut self, parallelism: i32) -> Self {
+        self.database_options.increase_parallelism(parallelism);
+
+        self
     }
 
-    pub fn transaction_database_options(&mut self) -> &mut TransactionDBOptions {
-        &mut self.transaction_database_options
+    /// https://docs.rs/rocksdb/0.22.0/rocksdb/struct.TransactionDBOptions.html#method.set_default_lock_timeout
+    pub fn set_default_lock_timeout(mut self, default_lock_timeout: i64) -> Self {
+        self.transaction_database_options
+            .set_default_lock_timeout(default_lock_timeout);
+
+        self
+    }
+
+    /// https://docs.rs/rocksdb/0.22.0/rocksdb/struct.TransactionDBOptions.html#method.set_max_num_locks
+    pub fn set_max_num_locks(mut self, max_num_locks: i64) -> Self {
+        self.transaction_database_options
+            .set_max_num_locks(max_num_locks);
+
+        self
+    }
+
+    /// https://docs.rs/rocksdb/0.22.0/rocksdb/struct.TransactionDBOptions.html#method.set_num_stripes
+    pub fn set_num_stripes(mut self, num_stripes: usize) -> Self {
+        self.transaction_database_options
+            .set_num_stripes(num_stripes);
+
+        self
+    }
+
+    /// https://docs.rs/rocksdb/0.22.0/rocksdb/struct.TransactionDBOptions.html#method.set_txn_lock_timeout
+    pub fn set_txn_lock_timeout(mut self, txn_lock_timeout: i64) -> Self {
+        self.transaction_database_options
+            .set_txn_lock_timeout(txn_lock_timeout);
+
+        self
+    }
+
+    pub fn build(self, path: impl AsRef<Path>) -> Result<KvStore, KvStoreError> {
+        let transaction_database = TransactionDB::open(
+            &self.database_options,
+            &self.transaction_database_options,
+            path,
+        )
+        .map_err(KvStoreError::Open)?;
+
+        Ok(KvStore {
+            database: Arc::new(transaction_database),
+        })
     }
 }
 
@@ -64,33 +111,9 @@ impl Clone for KvStore {
 impl KvStore {
     /// Open the database with default options.
     pub fn open(path: impl AsRef<Path>) -> Result<Self, KvStoreError> {
-        let mut database_options = Options::default();
-        database_options.create_if_missing(true);
+        let builder = KvStoreBuilder::default();
 
-        let transaction_database_options = TransactionDBOptions::default();
-        let transaction_database =
-            TransactionDB::open(&database_options, &transaction_database_options, path)
-                .map_err(KvStoreError::Open)?;
-
-        Ok(Self {
-            database: Arc::new(transaction_database),
-        })
-    }
-
-    pub fn open_options(
-        options: KvStoreOptions,
-        path: impl AsRef<Path>,
-    ) -> Result<Self, KvStoreError> {
-        let transaction_database = TransactionDB::open(
-            &options.database_options,
-            &options.transaction_database_options,
-            path,
-        )
-        .map_err(KvStoreError::Open)?;
-
-        Ok(Self {
-            database: Arc::new(transaction_database),
-        })
+        builder.build(path)
     }
 
     #[allow(static_mut_refs)]
