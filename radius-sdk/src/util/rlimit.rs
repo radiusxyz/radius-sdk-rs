@@ -148,9 +148,9 @@ pub enum ResourceType {
     RLIMIT_RSS,
 }
 
-impl From<ResourceType> for i32 {
-    fn from(value: ResourceType) -> Self {
-        match value {
+impl ResourceType {
+    fn into_u32(&self) -> u32 {
+        match self {
             ResourceType::RLIMIT_AS => libc::RLIMIT_AS,
             ResourceType::RLIMIT_CORE => libc::RLIMIT_CORE,
             ResourceType::RLIMIT_CPU => libc::RLIMIT_CPU,
@@ -176,8 +176,8 @@ impl From<ResourceType> for i32 {
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct ResourceLimit {
-    pub soft_limit: u64, // The current system resource limit.
-    pub hard_limit: u64, // The maximum limit set by the system.
+    pub soft_limit: u64,
+    pub hard_limit: u64,
 }
 
 impl ResourceLimit {
@@ -187,11 +187,20 @@ impl ResourceLimit {
     }
 }
 
+/// # Examples
+///
+/// ```rust
+/// use radius_sdk::util::{self, ResourceType};
+///
+/// // Get the number of maximum file descriptor that can be opened by the current process.
+/// let rlimit = util::get_resource_limit(ResourceType::RLIMIT_NOFILE).unwrap();
+/// println!("{:?}", rlimit);
+/// ```
 pub fn get_resource_limit(resource_type: ResourceType) -> Result<ResourceLimit, std::io::Error> {
     let mut rlimit = MaybeUninit::<ResourceLimit>::uninit();
     let code = unsafe {
         libc::getrlimit(
-            resource_type.into(),
+            resource_type.into_u32(),
             rlimit.as_mut_ptr() as *mut libc::rlimit,
         )
     };
@@ -202,13 +211,22 @@ pub fn get_resource_limit(resource_type: ResourceType) -> Result<ResourceLimit, 
     Ok(unsafe { rlimit.assume_init() })
 }
 
+/// # Examples
+///
+/// ```rust
+/// use radius_sdk::util::{self, ResourceType};
+///
+/// // Set the number of file descriptor that can be opened by the current process.
+/// let descriptor_count: u64 = 4096;
+/// util::set_resource_limit(ResourceType::RLIMIT_NOFILE, descriptor_count).unwrap();
+/// ```
 pub fn set_resource_limit(resource_type: ResourceType, limit: u64) -> Result<(), std::io::Error> {
     let mut rlimit = get_resource_limit(resource_type)?;
     rlimit.soft_limit = limit;
 
     let code = unsafe {
         libc::setrlimit(
-            resource_type.into(),
+            resource_type.into_u32(),
             rlimit.as_mut_ptr() as *mut libc::rlimit,
         )
     };
