@@ -20,6 +20,30 @@ pub fn kvstore() -> Result<&'static KvStore, KvStoreError> {
     }
 }
 
+pub struct KvStoreOptions {
+    database_options: Options,
+    transaction_database_options: TransactionDBOptions,
+}
+
+impl Default for KvStoreOptions {
+    fn default() -> Self {
+        Self {
+            database_options: Options::default(),
+            transaction_database_options: TransactionDBOptions::default(),
+        }
+    }
+}
+
+impl KvStoreOptions {
+    pub fn database_options(&mut self) -> &mut Options {
+        &mut self.database_options
+    }
+
+    pub fn transaction_database_options(&mut self) -> &mut TransactionDBOptions {
+        &mut self.transaction_database_options
+    }
+}
+
 pub struct KvStore {
     database: Arc<TransactionDB>,
 }
@@ -37,7 +61,8 @@ impl Clone for KvStore {
 }
 
 impl KvStore {
-    pub fn new(path: impl AsRef<Path>) -> Result<Self, KvStoreError> {
+    /// Open the database with default options.
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, KvStoreError> {
         let mut database_options = Options::default();
         database_options.create_if_missing(true);
 
@@ -45,6 +70,22 @@ impl KvStore {
         let transaction_database =
             TransactionDB::open(&database_options, &transaction_database_options, path)
                 .map_err(KvStoreError::Open)?;
+
+        Ok(Self {
+            database: Arc::new(transaction_database),
+        })
+    }
+
+    pub fn open_options(
+        options: KvStoreOptions,
+        path: impl AsRef<Path>,
+    ) -> Result<Self, KvStoreError> {
+        let transaction_database = TransactionDB::open(
+            &options.database_options,
+            &options.transaction_database_options,
+            path,
+        )
+        .map_err(KvStoreError::Open)?;
 
         Ok(Self {
             database: Arc::new(transaction_database),
