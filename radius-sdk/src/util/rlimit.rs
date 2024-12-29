@@ -149,7 +149,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
-    fn into_u32(&self) -> u32 {
+    fn into_u32(self) -> u32 {
         match self {
             ResourceType::RLIMIT_AS => libc::RLIMIT_AS,
             ResourceType::RLIMIT_CORE => libc::RLIMIT_CORE,

@@ -380,7 +380,7 @@ where
     value: V,
 }
 
-impl<'db, V> std::ops::Deref for Lock<'db, V>
+impl<V> std::ops::Deref for Lock<'_, V>
 where
     V: Debug + Serialize + DeserializeOwned,
 {
@@ -391,7 +391,7 @@ where
     }
 }
 
-impl<'db, V> std::ops::DerefMut for Lock<'db, V>
+impl<V> std::ops::DerefMut for Lock<'_, V>
 where
     V: Debug + Serialize + DeserializeOwned,
 {
