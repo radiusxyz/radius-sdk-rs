@@ -1,3 +1,5 @@
+pub mod util;
+
 #[cfg(any(feature = "full", feature = "context"))]
 pub use context;
 #[cfg(any(feature = "full", feature = "json-rpc"))]

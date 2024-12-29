@@ -233,6 +233,7 @@ impl Publisher {
     ///     event.clusterId, event.rollupId, event.rollupOwnerAddress
     /// );
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub async fn add_rollup(
         &self,
         cluster_id: impl AsRef<str>,
