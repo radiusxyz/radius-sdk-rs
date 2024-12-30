@@ -149,7 +149,23 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
+    #[cfg(target_os = "linux")]
     fn into_u32(self) -> u32 {
+        match self {
+            ResourceType::RLIMIT_AS => libc::RLIMIT_AS,
+            ResourceType::RLIMIT_CORE => libc::RLIMIT_CORE,
+            ResourceType::RLIMIT_CPU => libc::RLIMIT_CPU,
+            ResourceType::RLIMIT_DATA => libc::RLIMIT_DATA,
+            ResourceType::RLIMIT_FSIZE => libc::RLIMIT_FSIZE,
+            ResourceType::RLIMIT_MEMLOCK => libc::RLIMIT_MEMLOCK,
+            ResourceType::RLIMIT_NOFILE => libc::RLIMIT_NOFILE,
+            ResourceType::RLIMIT_NPROC => libc::RLIMIT_NPROC,
+            ResourceType::RLIMIT_RSS => libc::RLIMIT_RSS,
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn into_i32(self) -> i32 {
         match self {
             ResourceType::RLIMIT_AS => libc::RLIMIT_AS,
             ResourceType::RLIMIT_CORE => libc::RLIMIT_CORE,
@@ -196,6 +212,7 @@ impl ResourceLimit {
 /// let rlimit = util::get_resource_limit(ResourceType::RLIMIT_NOFILE).unwrap();
 /// println!("{:?}", rlimit);
 /// ```
+#[cfg(target_os = "linux")]
 pub fn get_resource_limit(resource_type: ResourceType) -> Result<ResourceLimit, std::io::Error> {
     let mut rlimit = MaybeUninit::<ResourceLimit>::uninit();
     let code = unsafe {
@@ -216,10 +233,36 @@ pub fn get_resource_limit(resource_type: ResourceType) -> Result<ResourceLimit, 
 /// ```rust
 /// use radius_sdk::util::{self, ResourceType};
 ///
+/// // Get the number of maximum file descriptor that can be opened by the current process.
+/// let rlimit = util::get_resource_limit(ResourceType::RLIMIT_NOFILE).unwrap();
+/// println!("{:?}", rlimit);
+/// ```
+#[cfg(target_os = "macos")]
+pub fn get_resource_limit(resource_type: ResourceType) -> Result<ResourceLimit, std::io::Error> {
+    let mut rlimit = MaybeUninit::<ResourceLimit>::uninit();
+    let code = unsafe {
+        libc::getrlimit(
+            resource_type.into_i32(),
+            rlimit.as_mut_ptr() as *mut libc::rlimit,
+        )
+    };
+    if code.is_negative() {
+        return Err(std::io::Error::from_raw_os_error(-code));
+    }
+
+    Ok(unsafe { rlimit.assume_init() })
+}
+
+/// # Examples
+///
+/// ```rust
+/// use radius_sdk::util::{self, ResourceType};
+///
 /// // Set the number of file descriptor that can be opened by the current process.
 /// let descriptor_count: u64 = 4096;
 /// util::set_resource_limit(ResourceType::RLIMIT_NOFILE, descriptor_count).unwrap();
 /// ```
+#[cfg(target_os = "linux")]
 pub fn set_resource_limit(resource_type: ResourceType, limit: u64) -> Result<(), std::io::Error> {
     let mut rlimit = get_resource_limit(resource_type)?;
     rlimit.soft_limit = limit;
@@ -227,6 +270,33 @@ pub fn set_resource_limit(resource_type: ResourceType, limit: u64) -> Result<(),
     let code = unsafe {
         libc::setrlimit(
             resource_type.into_u32(),
+            rlimit.as_mut_ptr() as *mut libc::rlimit,
+        )
+    };
+    if code.is_negative() {
+        return Err(std::io::Error::from_raw_os_error(-code));
+    }
+
+    Ok(())
+}
+
+/// # Examples
+///
+/// ```rust
+/// use radius_sdk::util::{self, ResourceType};
+///
+/// // Set the number of file descriptor that can be opened by the current process.
+/// let descriptor_count: u64 = 4096;
+/// util::set_resource_limit(ResourceType::RLIMIT_NOFILE, descriptor_count).unwrap();
+/// ```
+#[cfg(target_os = "macos")]
+pub fn set_resource_limit(resource_type: ResourceType, limit: u64) -> Result<(), std::io::Error> {
+    let mut rlimit = get_resource_limit(resource_type)?;
+    rlimit.soft_limit = limit;
+
+    let code = unsafe {
+        libc::setrlimit(
+            resource_type.into_i32(),
             rlimit.as_mut_ptr() as *mut libc::rlimit,
         )
     };
