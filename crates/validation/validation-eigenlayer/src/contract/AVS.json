@@ -1,0 +1,514 @@
+{
+    "abi": [
+        {
+            "type": "function",
+            "name": "createNewTask",
+            "inputs": [
+                {
+                    "name": "_commitment",
+                    "type": "bytes",
+                    "internalType": "bytes"
+                },
+                {
+                    "name": "_blockNumber",
+                    "type": "uint64",
+                    "internalType": "uint64"
+                },
+                {
+                    "name": "_rollupId",
+                    "type": "string",
+                    "internalType": "string"
+                },
+                {
+                    "name": "_clusterId",
+                    "type": "string",
+                    "internalType": "string"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "respondToTask",
+            "inputs": [
+                {
+                    "name": "task",
+                    "type": "tuple",
+                    "internalType": "struct IValidationServiceManager.Task",
+                    "components": [
+                        {
+                            "name": "commitment",
+                            "type": "bytes",
+                            "internalType": "bytes"
+                        },
+                        {
+                            "name": "blockNumber",
+                            "type": "uint64",
+                            "internalType": "uint64"
+                        },
+                        {
+                            "name": "rollupId",
+                            "type": "string",
+                            "internalType": "string"
+                        },
+                        {
+                            "name": "clusterId",
+                            "type": "string",
+                            "internalType": "string"
+                        },
+                        {
+                            "name": "taskCreatedBlock",
+                            "type": "uint32",
+                            "internalType": "uint32"
+                        }
+                    ]
+                },
+                {
+                    "name": "referenceTaskIndex",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                },
+                {
+                    "name": "signature",
+                    "type": "bytes",
+                    "internalType": "bytes"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "updateAVSMetadata",
+            "inputs": [
+                {
+                    "name": "_metadataURI",
+                    "type": "string",
+                    "internalType": "string"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "event",
+            "name": "NewTaskCreated",
+            "inputs": [
+                {
+                    "name": "taskIndex",
+                    "type": "uint32",
+                    "indexed": true,
+                    "internalType": "uint32"
+                },
+                {
+                    "name": "task",
+                    "type": "tuple",
+                    "indexed": false,
+                    "internalType": "struct IValidationServiceManager.Task",
+                    "components": [
+                        {
+                            "name": "commitment",
+                            "type": "bytes",
+                            "internalType": "bytes"
+                        },
+                        {
+                            "name": "blockNumber",
+                            "type": "uint64",
+                            "internalType": "uint64"
+                        },
+                        {
+                            "name": "rollupId",
+                            "type": "string",
+                            "internalType": "string"
+                        },
+                        {
+                            "name": "clusterId",
+                            "type": "string",
+                            "internalType": "string"
+                        },
+                        {
+                            "name": "taskCreatedBlock",
+                            "type": "uint32",
+                            "internalType": "uint32"
+                        }
+                    ]
+                },
+                {
+                    "name": "commitment",
+                    "type": "bytes",
+                    "indexed": false,
+                    "internalType": "bytes"
+                },
+                {
+                    "name": "blockNumber",
+                    "type": "uint64",
+                    "indexed": false,
+                    "internalType": "uint64"
+                },
+                {
+                    "name": "rollupId",
+                    "type": "string",
+                    "indexed": false,
+                    "internalType": "string"
+                },
+                {
+                    "name": "clusterId",
+                    "type": "string",
+                    "indexed": false,
+                    "internalType": "string"
+                },
+                {
+                    "name": "taskCreatedBlock",
+                    "type": "uint32",
+                    "indexed": false,
+                    "internalType": "uint32"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "TaskResponded",
+            "inputs": [
+                {
+                    "name": "taskIndex",
+                    "type": "uint32",
+                    "indexed": true,
+                    "internalType": "uint32"
+                },
+                {
+                    "name": "commitment",
+                    "type": "bytes",
+                    "indexed": false,
+                    "internalType": "bytes"
+                },
+                {
+                    "name": "blockNumber",
+                    "type": "uint64",
+                    "indexed": false,
+                    "internalType": "uint64"
+                },
+                {
+                    "name": "rollupId",
+                    "type": "string",
+                    "indexed": false,
+                    "internalType": "string"
+                },
+                {
+                    "name": "clusterId",
+                    "type": "string",
+                    "indexed": false,
+                    "internalType": "string"
+                },
+                {
+                    "name": "taskCreatedBlock",
+                    "type": "uint32",
+                    "indexed": false,
+                    "internalType": "uint32"
+                },
+                {
+                    "name": "operator",
+                    "type": "address",
+                    "indexed": false,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        }
+    ],
+    "bytecode": {
+        "object": "0x",
+        "sourceMap": "",
+        "linkReferences": {}
+    },
+    "deployedBytecode": {
+        "object": "0x",
+        "sourceMap": "",
+        "linkReferences": {}
+    },
+    "methodIdentifiers": {
+        "createNewTask(bytes,uint64,string,string)": "29ccc9f9",
+        "respondToTask((bytes,uint64,string,string,uint32),uint32,bytes)": "9f02df9f",
+        "updateAVSMetadata(string)": "b1eb9e95"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.25+commit.b61c2a91\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"taskIndex\",\"type\":\"uint32\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"clusterId\",\"type\":\"string\"},{\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"struct IValidationServiceManager.Task\",\"name\":\"task\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"clusterId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"name\":\"NewTaskCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint32\",\"name\":\"taskIndex\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"clusterId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"}],\"name\":\"TaskResponded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"_blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"string\",\"name\":\"_rollupId\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"_clusterId\",\"type\":\"string\"}],\"name\":\"createNewTask\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes\",\"name\":\"commitment\",\"type\":\"bytes\"},{\"internalType\":\"uint64\",\"name\":\"blockNumber\",\"type\":\"uint64\"},{\"internalType\":\"string\",\"name\":\"rollupId\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"clusterId\",\"type\":\"string\"},{\"internalType\":\"uint32\",\"name\":\"taskCreatedBlock\",\"type\":\"uint32\"}],\"internalType\":\"struct IValidationServiceManager.Task\",\"name\":\"task\",\"type\":\"tuple\"},{\"internalType\":\"uint32\",\"name\":\"referenceTaskIndex\",\"type\":\"uint32\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"respondToTask\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_metadataURI\",\"type\":\"string\"}],\"name\":\"updateAVSMetadata\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/IValidationServiceManager.sol\":\"IValidationServiceManager\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":@eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/\",\":@eigenlayer/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/\",\":@openzeppelin-upgrades-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable/\",\":@openzeppelin-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":@openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/\",\":ds-test/=lib/eigenlayer-middleware/lib/ds-test/src/\",\":eigenlayer-contracts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/\",\":eigenlayer-middleware/=lib/eigenlayer-middleware/\",\":erc4626-tests/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":openzeppelin-contracts-upgradeable-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/\",\":openzeppelin-contracts-upgradeable/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/\",\":openzeppelin-contracts-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\",\":openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/contracts/\"]},\"sources\":{\"src/IValidationServiceManager.sol\":{\"keccak256\":\"0xa34a45937be2ab877ab36f65fd33dda69cc36c9b9ec9b45255c08475abcb2478\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://d8ed06b8a3bc4996d0579d757c4f403ca0c77534c94f9caac1397f6fdfd1eb42\",\"dweb:/ipfs/QmU3goFbcukaYuwmxgNiFSrfdQWUR1xeTJp9X3NJdVR8R9\"]}},\"version\":1}",
+    "metadata": {
+        "compiler": {
+            "version": "0.8.25+commit.b61c2a91"
+        },
+        "language": "Solidity",
+        "output": {
+            "abi": [
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint32",
+                            "name": "taskIndex",
+                            "type": "uint32",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "struct IValidationServiceManager.Task",
+                            "name": "task",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "bytes",
+                                    "name": "commitment",
+                                    "type": "bytes"
+                                },
+                                {
+                                    "internalType": "uint64",
+                                    "name": "blockNumber",
+                                    "type": "uint64"
+                                },
+                                {
+                                    "internalType": "string",
+                                    "name": "rollupId",
+                                    "type": "string"
+                                },
+                                {
+                                    "internalType": "string",
+                                    "name": "clusterId",
+                                    "type": "string"
+                                },
+                                {
+                                    "internalType": "uint32",
+                                    "name": "taskCreatedBlock",
+                                    "type": "uint32"
+                                }
+                            ],
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "bytes",
+                            "name": "commitment",
+                            "type": "bytes",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint64",
+                            "name": "blockNumber",
+                            "type": "uint64",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "rollupId",
+                            "type": "string",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "clusterId",
+                            "type": "string",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint32",
+                            "name": "taskCreatedBlock",
+                            "type": "uint32",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "NewTaskCreated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint32",
+                            "name": "taskIndex",
+                            "type": "uint32",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "bytes",
+                            "name": "commitment",
+                            "type": "bytes",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint64",
+                            "name": "blockNumber",
+                            "type": "uint64",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "rollupId",
+                            "type": "string",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "clusterId",
+                            "type": "string",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint32",
+                            "name": "taskCreatedBlock",
+                            "type": "uint32",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "operator",
+                            "type": "address",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "TaskResponded",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "bytes",
+                            "name": "_commitment",
+                            "type": "bytes"
+                        },
+                        {
+                            "internalType": "uint64",
+                            "name": "_blockNumber",
+                            "type": "uint64"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "_rollupId",
+                            "type": "string"
+                        },
+                        {
+                            "internalType": "string",
+                            "name": "_clusterId",
+                            "type": "string"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "createNewTask"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "struct IValidationServiceManager.Task",
+                            "name": "task",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "bytes",
+                                    "name": "commitment",
+                                    "type": "bytes"
+                                },
+                                {
+                                    "internalType": "uint64",
+                                    "name": "blockNumber",
+                                    "type": "uint64"
+                                },
+                                {
+                                    "internalType": "string",
+                                    "name": "rollupId",
+                                    "type": "string"
+                                },
+                                {
+                                    "internalType": "string",
+                                    "name": "clusterId",
+                                    "type": "string"
+                                },
+                                {
+                                    "internalType": "uint32",
+                                    "name": "taskCreatedBlock",
+                                    "type": "uint32"
+                                }
+                            ]
+                        },
+                        {
+                            "internalType": "uint32",
+                            "name": "referenceTaskIndex",
+                            "type": "uint32"
+                        },
+                        {
+                            "internalType": "bytes",
+                            "name": "signature",
+                            "type": "bytes"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "respondToTask"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "string",
+                            "name": "_metadataURI",
+                            "type": "string"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "updateAVSMetadata"
+                }
+            ],
+            "devdoc": {
+                "kind": "dev",
+                "methods": {},
+                "version": 1
+            },
+            "userdoc": {
+                "kind": "user",
+                "methods": {},
+                "version": 1
+            }
+        },
+        "settings": {
+            "remappings": [
+                "@eigenlayer-middleware/=lib/eigenlayer-middleware/",
+                "@eigenlayer-scripts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/script/",
+                "@eigenlayer/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/src/",
+                "@openzeppelin-upgrades-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
+                "@openzeppelin-upgrades/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable/",
+                "@openzeppelin-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
+                "@openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/",
+                "ds-test/=lib/eigenlayer-middleware/lib/ds-test/src/",
+                "eigenlayer-contracts/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/",
+                "eigenlayer-middleware/=lib/eigenlayer-middleware/",
+                "erc4626-tests/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/lib/erc4626-tests/",
+                "forge-std/=lib/forge-std/src/",
+                "openzeppelin-contracts-upgradeable-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/",
+                "openzeppelin-contracts-upgradeable/=lib/eigenlayer-middleware/lib/openzeppelin-contracts-upgradeable/",
+                "openzeppelin-contracts-v4.9.0/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-v4.9.0/",
+                "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+                "openzeppelin/=lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts-upgradeable-v4.9.0/contracts/"
+            ],
+            "optimizer": {
+                "enabled": true,
+                "runs": 200
+            },
+            "metadata": {
+                "bytecodeHash": "ipfs"
+            },
+            "compilationTarget": {
+                "src/IValidationServiceManager.sol": "IValidationServiceManager"
+            },
+            "evmVersion": "paris",
+            "libraries": {}
+        },
+        "sources": {
+            "src/IValidationServiceManager.sol": {
+                "keccak256": "0xa34a45937be2ab877ab36f65fd33dda69cc36c9b9ec9b45255c08475abcb2478",
+                "urls": [
+                    "bzz-raw://d8ed06b8a3bc4996d0579d757c4f403ca0c77534c94f9caac1397f6fdfd1eb42",
+                    "dweb:/ipfs/QmU3goFbcukaYuwmxgNiFSrfdQWUR1xeTJp9X3NJdVR8R9"
+                ],
+                "license": "UNLICENSED"
+            }
+        },
+        "version": 1
+    },
+    "id": 98
+}

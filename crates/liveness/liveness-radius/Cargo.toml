@@ -1,0 +1,9 @@
+[package]
+name = "liveness-radius"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy = { workspace = true, features = ["full", "reqwest", "signer-local", "pubsub"] }
+futures = { workspace = true }
+pin-project = { workspace = true }
