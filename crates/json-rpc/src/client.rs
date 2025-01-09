@@ -487,6 +487,8 @@ pub enum RpcClientError {
     Fetch(Box<dyn std::error::Error>),
 }
 
+unsafe impl Send for RpcClientError {}
+
 impl std::fmt::Display for RpcClientError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
