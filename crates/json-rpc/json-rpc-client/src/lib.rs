@@ -41,6 +41,10 @@ pub struct RpcClient {
 }
 
 impl RpcClient {
+    pub fn builder() -> RpcClientBuilder {
+        RpcClientBuilder::default()
+    }
+
     pub fn new() -> Result<Self, RpcClientError> {
         let rpc_client = Self {
             inner: ClientBuilder::default()
