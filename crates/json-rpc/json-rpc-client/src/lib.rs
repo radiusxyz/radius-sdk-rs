@@ -83,7 +83,7 @@ impl RpcClient {
     /// # Examples
     ///
     /// ```rust
-    /// use radius_sdk::json_rpc::RpcClient;
+    /// use radius_sdk::json_rpc::client::RpcClient;
     /// use serde::Serialize;
     ///
     /// #[derive(Clone, Debug, Serialize)]
@@ -138,7 +138,7 @@ impl RpcClient {
     /// # Examples
     ///
     /// ```rust
-    /// use radius_sdk::json_rpc::{BatchRequest, RpcClient};
+    /// use radius_sdk::json_rpc::client::{BatchRequest, RpcClient};
     /// use serde::Serialize;
     ///
     /// #[derive(Clone, Debug, Serialize)]
@@ -187,6 +187,9 @@ impl RpcClient {
     ///         .batch_request(rpc_url, &batch_request)
     ///         .await
     ///         .unwrap();
+    ///     for response in batch_response {
+    ///         response.parse().unwrap();
+    ///     }
     ///
     ///     println!("{:?}", batch_response);
     /// }
@@ -220,7 +223,7 @@ impl RpcClient {
     /// # Examples
     ///
     /// ```rust
-    /// use radius_sdk::json_rpc::RpcClient;
+    /// use radius_sdk::json_rpc::client::RpcClient;
     /// use serde::Serialize;
     ///
     /// #[derive(Clone, Debug, Serialize)]
@@ -279,7 +282,7 @@ impl RpcClient {
     /// # Examples
     ///
     /// ```rust
-    /// use radius_sdk::json_rpc::RpcClient;
+    /// use radius_sdk::json_rpc::client::RpcClient;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
