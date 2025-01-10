@@ -191,11 +191,12 @@ impl RpcClient {
     ///         .batch_request(rpc_url, &batch_request)
     ///         .await
     ///         .unwrap();
-    ///     for response in batch_response {
-    ///         response.parse().unwrap();
+    ///     for (index, response) in batch_response.into_iter().enumerate() {
+    ///         match response.parse::<String>() {
+    ///             Ok(nonce) => println!("Nonce for Address {}: {:?}", index, nonce),
+    ///             Err(error) => println!("Error: {}", error),
+    ///         }
     ///     }
-    ///
-    ///     println!("{:?}", batch_response);
     /// }
     /// ```
     pub async fn batch_request(
