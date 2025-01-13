@@ -100,6 +100,8 @@ where
 #[derive(Debug)]
 pub struct RpcError(Box<dyn std::error::Error + Send + 'static>);
 
+unsafe impl Send for RpcError {}
+
 impl std::fmt::Display for RpcError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
