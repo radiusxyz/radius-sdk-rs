@@ -1,0 +1,14 @@
+[package]
+name = "json-rpc-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+http = "1"
+hyper = "0.14.27"
+jsonrpsee = { version = "0.23", features = ["server"] }
+serde = { workspace = true, features = ["derive", "rc"] }
+serde_json = { workspace = true }
+tower = { version = "0.4.13", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["full"] }
+url = "2.5"

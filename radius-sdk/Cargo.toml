@@ -5,20 +5,31 @@ edition = "2021"
 
 [dependencies]
 context = { path = "../crates/context", optional = true }
-json-rpc = { path = "../crates/json-rpc", optional = true }
-kvstore = { path = "../crates/kvstore", optional = true, default-features = false }
-kvstore-macros = { path = "../crates/kvstore-macros", optional = true }
-liveness-radius = { path = "../crates/liveness-radius", default-features = false, optional = true }
+json-rpc-client = { path = "../crates/json-rpc/json-rpc-client", optional = true }
+json-rpc-server = { path = "../crates/json-rpc/json-rpc-server", optional = true }
+kvstore = { path = "../crates/kvstore/kvstore", optional = true, default-features = false }
+kvstore-macros = { path = "../crates/kvstore/kvstore-macros", optional = true }
+liveness-radius = { path = "../crates/liveness/liveness-radius", default-features = false, optional = true }
 signature = { path = "../crates/signature", optional = true }
-validation-eigenlayer = { path = "../crates/validation-eigenlayer", default-features = false, optional = true }
-validation-symbiotic = { path = "../crates/validation-symbiotic", default-features = false, optional = true }
+validation-eigenlayer = { path = "../crates/validation/validation-eigenlayer", default-features = false, optional = true }
+validation-symbiotic = { path = "../crates/validation/validation-symbiotic", default-features = false, optional = true }
 
 libc = "0.2"
 
 [features]
-full = ["dep:context", "dep:json-rpc", "kvstore/json", "dep:liveness-radius", "dep:signature", "dep:validation-eigenlayer", "dep:validation-symbiotic"]
+full = [
+    "dep:context",
+    "kvstore/json",
+    "dep:liveness-radius",
+    "dep:json-rpc-client",
+    "dep:json-rpc-server",
+    "dep:signature",
+    "dep:validation-eigenlayer",
+    "dep:validation-symbiotic",
+]
 context = ["dep:context"]
-json-rpc = ["dep:json-rpc"]
+json-rpc-client = ["dep:json-rpc-client"]
+json-rpc-server = ["dep:json-rpc-server"]
 kvstore-bytes = ["kvstore/bytes", "dep:kvstore-macros"]
 kvstore-json = ["kvstore/json", "dep:kvstore-macros"]
 liveness-radius = ["dep:liveness-radius"]

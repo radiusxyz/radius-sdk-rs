@@ -1,15 +1,16 @@
 [workspace]
 resolver = "2"
 members = [
-    "radius-sdk",
     "crates/context",
-    "crates/json-rpc",
-    "crates/kvstore",
-    "crates/kvstore-macros",
-    "crates/liveness-radius",
+    "crates/json-rpc/json-rpc-client",
+    "crates/json-rpc/json-rpc-server",
+    "crates/kvstore/kvstore",
+    "crates/kvstore/kvstore-macros",
+    "crates/liveness/liveness-radius",
     "crates/signature",
-    "crates/validation-eigenlayer",
-    "crates/validation-symbiotic",
+    "crates/validation/validation-eigenlayer",
+    "crates/validation/validation-symbiotic",
+    "radius-sdk",
 ]
 
 [workspace.dependencies]
