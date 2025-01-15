@@ -442,13 +442,7 @@ impl Publisher {
             .map_err(PublisherError::GetSequencers)?
             ._0;
 
-        // Filter sequencer address whose value is zero (== [0; 20])
-        let filtered_list: Vec<Address> = sequencer_list
-            .into_iter()
-            .filter(|sequencer_address| !sequencer_address.is_zero())
-            .collect();
-
-        Ok(filtered_list)
+        Ok(sequencer_list)
     }
 
     /// Get the addresses of registered rollups in a given cluster for a
