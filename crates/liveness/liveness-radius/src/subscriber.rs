@@ -184,48 +184,48 @@ impl Stream for EventStream {
 impl EventStream {
     fn decode_log(log: Log) -> Option<Events> {
         match log.topic0() {
-            Some(&Liveness::InitializeCluster::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::InitializeCluster>()
+            Some(&Liveness::InitializedCluster::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::InitializedCluster>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::InitializeCluster(log_decoded.inner.data),
+                        Liveness::LivenessEvents::InitializedCluster(log_decoded.inner.data),
                         log,
                     )
                 }),
-            Some(&Liveness::RegisterSequencer::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::RegisterSequencer>()
+            Some(&Liveness::RegisteredSequencer::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::RegisteredSequencer>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::RegisterSequencer(log_decoded.inner.data),
+                        Liveness::LivenessEvents::RegisteredSequencer(log_decoded.inner.data),
                         log,
                     )
                 }),
-            Some(&Liveness::DeregisterSequencer::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::DeregisterSequencer>()
+            Some(&Liveness::DeregisteredSequencer::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::DeregisteredSequencer>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::DeregisterSequencer(log_decoded.inner.data),
+                        Liveness::LivenessEvents::DeregisteredSequencer(log_decoded.inner.data),
                         log,
                     )
                 }),
-            Some(&Liveness::AddRollup::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::AddRollup>()
+            Some(&Liveness::AddedRollup::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::AddedRollup>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::AddRollup(log_decoded.inner.data),
+                        Liveness::LivenessEvents::AddedRollup(log_decoded.inner.data),
                         log,
                     )
                 }),
-            Some(&Liveness::RegisterRollupExecutor::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::RegisterRollupExecutor>()
+            Some(&Liveness::RegisteredRollupExecutor::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::RegisteredRollupExecutor>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::RegisterRollupExecutor(log_decoded.inner.data),
+                        Liveness::LivenessEvents::RegisteredRollupExecutor(log_decoded.inner.data),
                         log,
                     )
                 }),
