@@ -27,6 +27,14 @@ impl RpcClientBuilder {
         Self(builder)
     }
 
+    /// Set the request timeout in milliseconds.
+    pub fn request_timeout(self, timeout: u64) -> Self {
+        let timeout = Duration::from_millis(timeout);
+        let builder = self.0.read_timeout(timeout);
+
+        Self(builder)
+    }
+
     pub fn build(self) -> Result<RpcClient, RpcClientError> {
         let rpc_client = RpcClient {
             inner: self.0.build().map_err(RpcClientError::Initialize)?,
