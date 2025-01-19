@@ -10,7 +10,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use url::Url;
 
-pub trait RpcParameter<C>: DeserializeOwned + Serialize
+pub trait RpcParameter<C>: DeserializeOwned + Serialize + Send
 where
     C: Clone + Send + Sync + 'static,
 {
