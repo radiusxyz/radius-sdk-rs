@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-trait = "0.1.85"
 http = "1"
 hyper = "0.14.27"
 jsonrpsee = { version = "0.23", features = ["server"] }
@@ -12,4 +11,5 @@ serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = { workspace = true }
 tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["full"] }
+trait-variant = "0.1.2"
 url = "2.5"
