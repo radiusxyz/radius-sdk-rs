@@ -1,4 +1,4 @@
-use std::{future::Future, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use http::{header, method::Method, Extensions};
 pub use jsonrpsee::server::ServerHandle;
@@ -10,7 +10,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use url::Url;
 
-pub trait RpcParameter<C>: DeserializeOwned + Serialize + Send
+#[trait_variant::make(RpcParameter: Send)]
+pub trait LocalRpcParameter<C>: DeserializeOwned + Serialize
 where
     C: Clone + Send + Sync + 'static,
 {
@@ -18,7 +19,7 @@ where
 
     fn method() -> &'static str;
 
-    fn handler(self, context: C) -> impl Future<Output = Result<Self::Response, RpcError>> + Send;
+    async fn handler(self, context: C) -> Result<Self::Response, RpcError>;
 }
 
 pub struct RpcServer<C>
