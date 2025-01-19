@@ -1,5 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
+pub use async_trait::async_trait;
 use http::{header, method::Method, Extensions};
 pub use jsonrpsee::server::ServerHandle;
 use jsonrpsee::{
@@ -10,8 +11,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use url::Url;
 
-#[trait_variant::make(RpcParameter: Send)]
-pub trait LocalRpcParameter<C>: DeserializeOwned + Serialize
+#[async_trait]
+pub trait RpcParameter<C>: DeserializeOwned + Serialize
 where
     C: Clone + Send + Sync + 'static,
 {
