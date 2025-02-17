@@ -153,7 +153,7 @@ impl Publisher {
     ///
     /// Get the block margin specified by the contract. Use the block margin to
     /// check the validity of the block number passed to the
-    /// [`get_sequencer_list()`] function.
+    /// [`get_tx_orderer_list()`] function.
     ///
     /// # Examples
     /// ```
@@ -199,11 +199,11 @@ impl Publisher {
     pub async fn initialize_cluster(
         &self,
         cluster_id: impl AsRef<str>,
-        max_sequencer_number: Uint<256, 4>,
+        max_tx_orderer_number: Uint<256, 4>,
     ) -> Result<Liveness::InitializedCluster, PublisherError> {
         let contract_call = self
             .liveness_contract
-            .initializeCluster(cluster_id.as_ref().to_string(), max_sequencer_number);
+            .initializeCluster(cluster_id.as_ref().to_string(), max_tx_orderer_number);
         let pending_transaction = contract_call.send().await;
         let event: Liveness::InitializedCluster = self
             .extract_event_from_pending_transaction(pending_transaction)
@@ -254,13 +254,13 @@ impl Publisher {
             PublisherError::ParseAddress(executor_address.as_ref().to_owned(), error)
         })?;
 
-        let validation_info = ILivenessRadius::ValidationInfo {
+        let validation_info = ILivenessServiceManager::ValidationInfo {
             platform: validation_info.platform,
             serviceProvider: validation_info.service_provider,
             validationServiceManager: validation_info.validation_service_manager,
         };
 
-        let new_rollup = ILivenessRadius::NewRollup {
+        let new_rollup = ILivenessServiceManager::NewRollup {
             rollupId: rollup_id.as_ref().to_string(),
             owner: rollup_owner_address,
             rollupType: rollup_type.as_ref().to_string(),
@@ -336,8 +336,8 @@ impl Publisher {
         Ok(event)
     }
 
-    /// Register the current [`Publisher`] instance as a sequencer of the
-    /// cluster. The address of the registered sequencer is equivalent
+    /// Register the current [`Publisher`] instance as a tx_orderer of the
+    /// cluster. The address of the registered tx_orderer is equivalent
     /// to that of self.address().
     ///
     /// # Examples
@@ -351,24 +351,24 @@ impl Publisher {
     /// .unwrap();
     ///
     /// let event = publisher
-    ///     .register_sequencer("0xdd45347e5d10daaadb40f185225fc8d860d2888b5c411aca387e17a265e2f491")
+    ///     .register_tx_orderer("0xdd45347e5d10daaadb40f185225fc8d860d2888b5c411aca387e17a265e2f491")
     ///     .await
     ///     .unwrap();
     ///
-    /// assert!(event.sequencerAddress == publisher.address());
+    /// assert!(event.txOrdererAddress == publisher.address());
     /// ```
-    pub async fn register_sequencer(
+    pub async fn register_tx_orderer(
         &self,
         cluster_id: impl AsRef<str>,
-    ) -> Result<Liveness::RegisteredSequencer, PublisherError> {
+    ) -> Result<Liveness::RegisteredTxOrderer, PublisherError> {
         let contract_call = self
             .liveness_contract
-            .registerSequencer(cluster_id.as_ref().to_string());
+            .registerTxOrderer(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
-        let event: Liveness::RegisteredSequencer = self
+        let event: Liveness::RegisteredTxOrderer = self
             .extract_event_from_pending_transaction(pending_transaction)
             .await
-            .map_err(PublisherError::RegisteredSequencer)?;
+            .map_err(PublisherError::RegisteredTxOrderer)?;
 
         Ok(event)
     }
@@ -386,29 +386,29 @@ impl Publisher {
     /// .unwrap();
     ///
     /// let event = publisher
-    ///     .deregister_sequencer("0xdd45347e5d10daaadb40f185225fc8d860d2888b5c411aca387e17a265e2f491")
+    ///     .deregister_tx_orderer("0xdd45347e5d10daaadb40f185225fc8d860d2888b5c411aca387e17a265e2f491")
     ///     .await
     ///     .unwrap();
     ///
-    /// assert!(event.sequencerAddress == publisher.address());
+    /// assert!(event.txOrdererAddress == publisher.address());
     /// ```
-    pub async fn deregister_sequencer(
+    pub async fn deregister_tx_orderer(
         &self,
         cluster_id: impl AsRef<str>,
-    ) -> Result<Liveness::DeregisteredSequencer, PublisherError> {
+    ) -> Result<Liveness::DeregisteredTxOrderer, PublisherError> {
         let contract_call = self
             .liveness_contract
-            .deregisterSequencer(cluster_id.as_ref().to_string());
+            .deregisterTxOrderer(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
-        let event: Liveness::DeregisteredSequencer = self
+        let event: Liveness::DeregisteredTxOrderer = self
             .extract_event_from_pending_transaction(pending_transaction)
             .await
-            .map_err(PublisherError::DeregisteredSequencer)?;
+            .map_err(PublisherError::DeregisteredTxOrderer)?;
 
         Ok(event)
     }
 
-    /// Get the addresses of registered sequencers in a given cluster for a
+    /// Get the addresses of registered tx_orderers in a given cluster for a
     /// given block number.
     ///
     /// # Examples
@@ -421,28 +421,28 @@ impl Publisher {
     /// )?;
     ///
     /// let block_number = publisher.get_block_number().await.unwrap();
-    /// let sequencer_list = publisher
-    ///     .get_sequencer_list(cluster_id, block_number)
+    /// let tx_orderer_list = publisher
+    ///     .get_tx_orderer_list(cluster_id, block_number)
     ///     .await
     ///     .unwrap();
     ///
-    /// println!("{:?}", sequencer_list);
+    /// println!("{:?}", tx_orderer_list);
     /// ```
-    pub async fn get_sequencer_list(
+    pub async fn get_tx_orderer_list(
         &self,
         cluster_id: impl AsRef<str>,
         block_number: u64,
     ) -> Result<Vec<Address>, PublisherError> {
-        let sequencer_list = self
+        let tx_orderer_list = self
             .liveness_contract
-            .getSequencers(cluster_id.as_ref().to_string())
+            .getTxOrderers(cluster_id.as_ref().to_string())
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::GetSequencers)?
+            .map_err(PublisherError::GetTxOrderers)?
             ._0;
 
-        Ok(sequencer_list)
+        Ok(tx_orderer_list)
     }
 
     /// Get the addresses of registered rollups in a given cluster for a
@@ -480,12 +480,12 @@ impl Publisher {
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::GetSequencers)?
+            .map_err(PublisherError::GetTxOrderers)?
             ._0;
 
         let filtered_list: Vec<Address> = executor_list
             .into_iter()
-            .filter(|sequencer_address| !sequencer_address.is_zero())
+            .filter(|tx_orderer_address| !tx_orderer_address.is_zero())
             .collect();
 
         Ok(filtered_list)
@@ -495,7 +495,7 @@ impl Publisher {
         &self,
         cluster_id: impl AsRef<str>,
         block_number: u64,
-    ) -> Result<Vec<ILivenessRadius::Rollup>, PublisherError> {
+    ) -> Result<Vec<ILivenessServiceManager::Rollup>, PublisherError> {
         let executor_list = self
             .liveness_contract
             .getRollups(cluster_id.as_ref().to_string())
@@ -513,7 +513,7 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
         block_number: u64,
-    ) -> Result<ILivenessRadius::Rollup, PublisherError> {
+    ) -> Result<ILivenessServiceManager::Rollup, PublisherError> {
         let rollup_info = self
             .liveness_contract
             .getRollup(
@@ -530,7 +530,7 @@ impl Publisher {
     }
 
     /// # TODO:
-    /// Fix the max sequencer number return type to one of the smaller types.
+    /// Fix the max tx_orderer number return type to one of the smaller types.
     ///
     /// # Examples
     /// ```
@@ -541,24 +541,24 @@ impl Publisher {
     /// )
     /// .unwrap();
     ///
-    /// let max_sequencer_number = publisher
-    ///     .get_max_sequencer_number(cluster_id)
+    /// let max_tx_orderer_number = publisher
+    ///     .get_max_tx_orderer_number(cluster_id)
     ///     .await
     ///     .unwrap();
     /// ```
-    pub async fn get_max_sequencer_number(
+    pub async fn get_max_tx_orderer_number(
         &self,
         cluster_id: impl AsRef<str>,
     ) -> Result<Uint<256, 4>, PublisherError> {
-        let max_sequencer_number = self
+        let max_tx_orderer_number = self
             .liveness_contract
-            .getMaxSequencerNumber(cluster_id.as_ref().to_string())
+            .getMaxTxOrdererNumber(cluster_id.as_ref().to_string())
             .call()
             .await
             .map_err(PublisherError::GetBlockMargin)?
             ._0;
 
-        Ok(max_sequencer_number)
+        Ok(max_tx_orderer_number)
     }
 
     pub async fn is_added_rollup(
@@ -601,7 +601,7 @@ impl Publisher {
         Ok(is_rollup_executor_registered)
     }
 
-    /// Check if the current publisher is registered as a sequencer in the
+    /// Check if the current publisher is registered as a tx_orderer in the
     /// cluster.
     ///
     /// # Examples
@@ -614,23 +614,26 @@ impl Publisher {
     /// )
     /// .unwrap();
     ///
-    /// let is_registered_sequencer = publisher.is_registered_sequencer(cluster_id).await.unwrap();
+    /// let is_registered_tx_orderer = publisher
+    ///     .is_registered_tx_orderer(cluster_id)
+    ///     .await
+    ///     .unwrap();
     ///
-    /// assert!(is_registered_sequencer == true);
+    /// assert!(is_registered_tx_orderer == true);
     /// ```
-    pub async fn is_registered_sequencer(
+    pub async fn is_registered_tx_orderer(
         &self,
         cluster_id: impl AsRef<str>,
     ) -> Result<bool, PublisherError> {
-        let is_registered_sequencer: bool = self
+        let is_registered_tx_orderer: bool = self
             .liveness_contract
-            .isSequencerRegistered(cluster_id.as_ref().to_string(), self.address())
+            .isTxOrdererRegistered(cluster_id.as_ref().to_string(), self.address())
             .call()
             .await
             .map_err(PublisherError::IsRegistered)?
             ._0;
 
-        Ok(is_registered_sequencer)
+        Ok(is_registered_tx_orderer)
     }
 
     async fn extract_event_from_pending_transaction<T>(
@@ -695,9 +698,9 @@ pub enum PublisherError {
     InitializedCluster(TransactionError),
     AddedRollup(TransactionError),
     RegisteredRollupExecutor(TransactionError),
-    RegisteredSequencer(TransactionError),
-    DeregisteredSequencer(TransactionError),
-    GetSequencers(alloy::contract::Error),
+    RegisteredTxOrderer(TransactionError),
+    DeregisteredTxOrderer(TransactionError),
+    GetTxOrderers(alloy::contract::Error),
     GetRollups(alloy::contract::Error),
     GetRollup(alloy::contract::Error),
     IsRegistered(alloy::contract::Error),

@@ -312,7 +312,7 @@ impl KvStore {
     /// # Examples
     ///
     /// ```rust
-    /// use radius_sequencer_sdk::kvstore::{KvStore, Lock};
+    /// use radius_tx_orderer_sdk::kvstore::{KvStore, Lock};
     /// use serde::{Deserialize, Serialize};
     ///
     /// #[derive(Clone, Debug, Default, Deserialize, Serialize)]

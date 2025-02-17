@@ -85,11 +85,11 @@ impl Subscriber {
     ///             LivenessEvents::InitializeCluster(event) => {
     ///                 // Handle `InitializeCluster` event.
     ///             }
-    ///             LivenessEvents::RegisterSequencer(event) => {
-    ///                 // Handle `RegisterSequencer` event.
+    ///             LivenessEvents::RegisterTxOrderer(event) => {
+    ///                 // Handle `RegisterTxOrderer` event.
     ///             }
-    ///             LivenessEvents::DeregisterSequencer(event) => {
-    ///                 // Handle `DeregisterSequencer` event.
+    ///             LivenessEvents::DeregisterTxOrderer(event) => {
+    ///                 // Handle `DeregisterTxOrderer` event.
     ///             }
     ///             LivenessEvents::AddRollup(event) => {
     ///                 // Handle `AddRollup` event.
@@ -193,21 +193,21 @@ impl EventStream {
                         log,
                     )
                 }),
-            Some(&Liveness::RegisteredSequencer::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::RegisteredSequencer>()
+            Some(&Liveness::RegisteredTxOrderer::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::RegisteredTxOrderer>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::RegisteredSequencer(log_decoded.inner.data),
+                        Liveness::LivenessEvents::RegisteredTxOrderer(log_decoded.inner.data),
                         log,
                     )
                 }),
-            Some(&Liveness::DeregisteredSequencer::SIGNATURE_HASH) => log
-                .log_decode::<Liveness::DeregisteredSequencer>()
+            Some(&Liveness::DeregisteredTxOrderer::SIGNATURE_HASH) => log
+                .log_decode::<Liveness::DeregisteredTxOrderer>()
                 .ok()
                 .map(|log_decoded| {
                     Events::LivenessEvents(
-                        Liveness::LivenessEvents::DeregisteredSequencer(log_decoded.inner.data),
+                        Liveness::LivenessEvents::DeregisteredTxOrderer(log_decoded.inner.data),
                         log,
                     )
                 }),

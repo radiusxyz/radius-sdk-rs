@@ -26,10 +26,10 @@ fn test_address_comparison() {
         signer_address
     }
 
-    pub fn get_sequencer_address(signing_key: &str) -> Address {
+    pub fn get_address(signing_key: &str) -> Address {
         let signer = PrivateKeySigner::from_str(ChainType::Ethereum, signing_key).unwrap();
         let signer_address = signer.address().clone();
-        println!("Sequencer address: {:?}", signer_address.as_hex_string());
+        println!("Tx_orderer address: {:?}", signer_address.as_hex_string());
 
         signer_address
     }
@@ -37,9 +37,9 @@ fn test_address_comparison() {
     let signing_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
     let alloy_address = get_alloy_address(signing_key);
-    let sequencer_address = get_sequencer_address(signing_key);
+    let tx_orderer_address = get_address(signing_key);
 
-    assert!(sequencer_address == alloy_address);
+    assert!(tx_orderer_address == alloy_address);
 
     let parsed_address =
         Address::from_str(ChainType::Ethereum, &alloy_address.to_string()).unwrap();
@@ -67,16 +67,15 @@ fn test_signature_verification() {
         );
 
         // SDK
-        let sequencer_signer =
-            PrivateKeySigner::from_str(ChainType::Ethereum, signing_key).unwrap();
-        let sequencer_signature = sequencer_signer.sign_message(message).unwrap();
+        let signer = PrivateKeySigner::from_str(ChainType::Ethereum, signing_key).unwrap();
+        let tx_orderer_signature = signer.sign_message(message).unwrap();
         println!(
-            "Sequencer signature (len: {}): {:?}",
-            sequencer_signature.len(),
-            sequencer_signature
+            "Tx_orderer signature (len: {}): {:?}",
+            tx_orderer_signature.len(),
+            tx_orderer_signature
         );
 
-        assert!(alloy_signature.as_bytes() == sequencer_signature.as_bytes());
+        assert!(alloy_signature.as_bytes() == tx_orderer_signature.as_bytes());
 
         let parsed_signature = Signature::from(alloy_signature.as_bytes().to_vec());
         println!(
@@ -106,16 +105,18 @@ fn test_random() {
 
     use alloy::signers::local::LocalSigner;
 
-    let (sequencer_signer, private_key_string) =
-        PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
-    let sequencer_address = sequencer_signer.address();
-    println!("Sequencer address: {:?}", sequencer_address.as_hex_string());
+    let (signer, private_key_string) = PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
+    let tx_orderer_address = signer.address();
+    println!(
+        "Tx_orderer address: {:?}",
+        tx_orderer_address.as_hex_string()
+    );
 
     let alloy_signer = LocalSigner::from_str(&private_key_string).unwrap();
     let alloy_address = alloy_signer.address();
     println!("Alloy address: {:?}", alloy_address);
 
-    assert!(*sequencer_address == alloy_address);
+    assert!(*tx_orderer_address == alloy_address);
 }
 
 #[test]
@@ -124,22 +125,24 @@ fn test_polymorphic_type_conversion() {
 
     use alloy::signers::local::LocalSigner;
 
-    let (sequencer_signer, private_key_string) =
-        PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
-    let sequencer_address = sequencer_signer.address();
-    println!("Sequencer address: {:?}", sequencer_address.as_hex_string());
+    let (signer, private_key_string) = PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
+    let tx_orderer_address = signer.address();
+    println!(
+        "Tx_orderer address: {:?}",
+        tx_orderer_address.as_hex_string()
+    );
 
     let alloy_signer = LocalSigner::from_str(&private_key_string).unwrap();
     let alloy_address = alloy_signer.address();
     println!("Alloy address: {:?}", alloy_address);
 
-    assert!(*sequencer_address == alloy_address);
+    assert!(*tx_orderer_address == alloy_address);
 
-    let address_string = serde_json::to_string(&sequencer_address.as_hex_string()).unwrap();
+    let address_string = serde_json::to_string(&tx_orderer_address.as_hex_string()).unwrap();
     let address_from_string: Address = serde_json::from_str(&address_string).unwrap();
     println!("{:?}", address_from_string);
 
-    let address_array = serde_json::to_string(&sequencer_address).unwrap();
+    let address_array = serde_json::to_string(&tx_orderer_address).unwrap();
     let address_from_array: Address = serde_json::from_str(&address_array).unwrap();
     println!("{:?}", address_from_array);
 
@@ -148,15 +151,15 @@ fn test_polymorphic_type_conversion() {
 
 #[test]
 fn test_hex_conversion() {
-    let (sequencer_signer, _) = PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
+    let (signer, _) = PrivateKeySigner::from_random(ChainType::Ethereum).unwrap();
 
-    let address = sequencer_signer.address().clone();
+    let address = signer.address().clone();
     let address_hex = address.as_hex_string();
     let address_json = serde_json::to_string(&address_hex).unwrap();
     let parsed_address: Address = serde_json::from_str(&address_json).unwrap();
     assert!(address == parsed_address);
 
-    let signature = sequencer_signer.sign_message("message").unwrap();
+    let signature = signer.sign_message("message").unwrap();
     let signature_hex = signature.as_hex_string();
     let signature_json = serde_json::to_string(&signature_hex).unwrap();
     let parsed_signature: Signature = serde_json::from_str(&signature_json).unwrap();

@@ -4,7 +4,7 @@ alloy::sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     Liveness,
-    "src/contract/LivenessRadius.json"
+    "src/contract/LivenessServiceManager.json"
 );
 
 pub enum Events {

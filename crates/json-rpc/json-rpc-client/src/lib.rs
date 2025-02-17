@@ -1,4 +1,4 @@
-//! Lightweight JSON RPC client for sequencer with the following
+//! Lightweight JSON RPC client for tx_orderer with the following
 //! functionalities:
 //! - [RpcClient::multicast]
 //! - [RpcClient::fetch]
