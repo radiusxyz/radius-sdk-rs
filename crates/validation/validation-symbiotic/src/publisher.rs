@@ -118,10 +118,36 @@ impl Publisher {
         rollup_id: impl AsRef<str>,
         block_number: u64,
         block_commitment: impl AsRef<[u8]>,
+
+        reference_task_index: u64,
+        vault_address_list: Vec<impl AsRef<str>>,
+        operator_merkle_root_list: Vec<[u8; 32]>,
+        total_staker_reward_list: Vec<u64>,
+        total_operator_reward_list: Vec<u64>,
     ) -> Result<FixedBytes<32>, PublisherError> {
         let cluster_id = cluster_id.as_ref().to_owned();
         let rollup_id = rollup_id.as_ref().to_owned();
         let block_number = U256::from(block_number);
+        let reference_task_index = U256::from(reference_task_index);
+
+        let vault_address_list = vault_address_list
+            .iter()
+            .map(|address| Address::from_str(address.as_ref()).unwrap())
+            .collect::<Vec<Address>>();
+
+        let operator_merkle_root_list = operator_merkle_root_list
+            .iter()
+            .map(|root| FixedBytes::from_slice(root))
+            .collect::<Vec<FixedBytes<32>>>();
+        let total_staker_reward_list = total_staker_reward_list
+            .iter()
+            .map(|reward| U256::from(*reward))
+            .collect::<Vec<U256>>();
+        let total_operator_reward_list = total_operator_reward_list
+            .iter()
+            .map(|reward| U256::from(*reward))
+            .collect::<Vec<U256>>();
+
         let block_commitment: FixedBytes<32> = {
             let length = block_commitment.as_ref().len();
             if length != 32 {
@@ -131,12 +157,27 @@ impl Publisher {
             FixedBytes::from_slice(block_commitment.as_ref())
         };
 
-        let transaction = self.validation_contract.createNewTask(
-            cluster_id,
-            rollup_id,
-            block_number,
-            block_commitment,
-        );
+        let task_params: IValidationServiceManager::TaskParams =
+            IValidationServiceManager::TaskParams {
+                clusterId: cluster_id,
+                rollupId: rollup_id,
+                blockNumber: block_number,
+                blockCommitment: block_commitment,
+            };
+
+        let distribution_params: IValidationServiceManager::DistributionParams =
+            IValidationServiceManager::DistributionParams {
+                referenceTaskIndex: reference_task_index,
+                vaultAddresses: vault_address_list,
+                operatorMerkleRoots: operator_merkle_root_list,
+                totalStakerReward: total_staker_reward_list,
+                totalOperatorReward: total_operator_reward_list,
+            };
+
+        let transaction = self
+            .validation_contract
+            .createNewTask(task_params, distribution_params);
+
         let pending_transaction = transaction.send().await;
         let transaction_hash = self
             .extract_transaction_hash_from_pending_transaction(pending_transaction)
@@ -150,16 +191,18 @@ impl Publisher {
         &self,
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
-        task_index: u64,
+        reference_task_index: u64,
         response: bool,
     ) -> Result<FixedBytes<32>, PublisherError> {
         let rollup_id = rollup_id.as_ref().to_owned();
         let cluster_id = cluster_id.as_ref().to_owned();
-        let task_index = task_index as u32;
+        let reference_task_index = U256::from(reference_task_index);
 
         let transaction = self
             .validation_contract
-            .respondToTask(cluster_id, rollup_id, task_index, response);
+            .respondToTask(cluster_id, rollup_id, reference_task_index, response)
+            .gas(3_000_000);
+
         let pending_transaction = transaction.send().await;
         let transaction_hash = self
             .extract_transaction_hash_from_pending_transaction(pending_transaction)
@@ -167,6 +210,50 @@ impl Publisher {
             .map_err(PublisherError::RespondToTask)?;
 
         Ok(transaction_hash)
+    }
+
+    pub async fn get_distribution_data(
+        &self,
+        cluster_id: impl AsRef<str>,
+        rollup_id: impl AsRef<str>,
+        reward_task_id: u64,
+    ) -> Result<(Vec<Address>, Vec<[u8; 32]>, Vec<u64>, Vec<u64>), PublisherError> {
+        let cluster_id = cluster_id.as_ref().to_owned();
+        let rollup_id = rollup_id.as_ref().to_owned();
+        let reward_task_id = U256::from(reward_task_id);
+
+        let result: ValidationServiceManager::getDistributionDataReturn = self
+            .validation_contract
+            .getDistributionData(cluster_id, rollup_id, reward_task_id)
+            .call()
+            .await
+            .map_err(PublisherError::GetDistributionData)?;
+
+        let vault_address_list = result.vaultAddresses.clone();
+        let operator_merkle_root_list: Vec<[u8; 32]> = result
+            .operatorMerkleRoots
+            .iter()
+            .map(|root| root.0)
+            .collect();
+
+        let total_staker_reward_list: Vec<u64> = result
+            .totalStakerReward
+            .iter()
+            .map(|reward| reward.to::<u64>())
+            .collect();
+
+        let total_operator_reward_list: Vec<u64> = result
+            .totalOperatorReward
+            .iter()
+            .map(|reward| reward.to::<u64>())
+            .collect();
+
+        Ok((
+            vault_address_list,
+            operator_merkle_root_list,
+            total_staker_reward_list,
+            total_operator_reward_list,
+        ))
     }
 }
 
@@ -195,6 +282,7 @@ pub enum PublisherError {
     BlockCommitmentLength(usize),
     RegisterBlockCommitment(TransactionError),
     RespondToTask(TransactionError),
+    GetDistributionData(alloy::contract::Error),
 }
 
 impl std::fmt::Display for PublisherError {
@@ -214,65 +302,84 @@ mod tests {
     use super::*;
     use crate::subscriber::Subscriber;
 
-    async fn callback(event: ValidationServiceManager::NewTaskCreated, _: Arc<()>) {
-        println!("clusterId: {:?}", event.clusterId);
-        println!("rollupId: {:?}", event.rollupId);
-        println!("referenceTaskIndex: {:?}", event.referenceTaskIndex);
-        println!("blockNumber: {:?}", event.blockNumber);
-        println!("commitment: {:?}", event.blockCommitment);
-        println!("taskCreatedBlock: {:?}", event.taskCreatedBlock);
-    }
+    // async fn callback(event: ValidationServiceManager::NewTaskCreated, _:
+    // Arc<()>) {     println!("clusterId: {:?}", event.clusterId);
+    //     println!("rollupId: {:?}", event.rollupId);
+    //     println!("referenceTaskIndex: {:?}", event.referenceTaskIndex);
+    //     println!("blockNumber: {:?}", event.blockNumber);
+    //     println!("commitment: {:?}", event.blockCommitment);
+    //     println!("taskCreatedBlock: {:?}", event.taskCreatedBlock);
+    // }
+
+    // #[tokio::test]
+    // async fn test_register_block_commitment() {
+    //     let publisher = Publisher::new(
+    //         "http://127.0.0.1:8545",
+    //         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    //         "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+    //     )
+    //     .unwrap();
+
+    //     let subscriber = Subscriber::new(
+    //         "ws://127.0.0.1:8545",
+    //         "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+    //     )
+    //     .unwrap();
+
+    //     tokio::spawn(async move {
+    //         loop {
+    //             subscriber
+    //                 .initialize_event_handler(callback, ().into())
+    //                 .await
+    //                 .unwrap();
+
+    //             sleep(Duration::from_secs(1)).await;
+    //         }
+    //     });
+
+    //     publisher
+    //         .register_block_commitment("cluster_id", "rollup_id", 0, &[0u8; 32])
+    //         .await
+    //         .unwrap();
+
+    //     sleep(Duration::from_secs(5)).await;
+    // }
+
+    // #[tokio::test]
+    // async fn test_respond_to_task() {
+    //     let publisher = Publisher::new(
+    //         "http://127.0.0.1:8545",
+    //         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    //         "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+    //     )
+    //     .unwrap();
+
+    //     let rollup_id = "rollup_id".to_owned();
+    //     let cluster_id = "cluster_id".to_owned();
+    //     let block_number = 0;
+    //     let response = true;
+
+    //     publisher
+    //         .respond_to_task(rollup_id, cluster_id, block_number, response)
+    //         .await
+    //         .unwrap();
+    // }
 
     #[tokio::test]
-    async fn test_register_block_commitment() {
+    async fn test_get_distribution_data() {
         let publisher = Publisher::new(
-            "http://127.0.0.1:8545",
+            "https://ethereum-holesky-rpc.publicnode.com",
             "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-            "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+            "0x71924dA7C61009e3B2Dac0247881d2727D7328D5",
         )
         .unwrap();
 
-        let subscriber = Subscriber::new(
-            "ws://127.0.0.1:8545",
-            "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
-        )
-        .unwrap();
-
-        tokio::spawn(async move {
-            loop {
-                subscriber
-                    .initialize_event_handler(callback, ().into())
-                    .await
-                    .unwrap();
-
-                sleep(Duration::from_secs(1)).await;
-            }
-        });
+        let cluster_id = "radius".to_owned();
+        let rollup_id = "rollup_id_2".to_owned();
+        let task_index = 10;
 
         publisher
-            .register_block_commitment("cluster_id", "rollup_id", 0, &[0u8; 32])
-            .await
-            .unwrap();
-
-        sleep(Duration::from_secs(5)).await;
-    }
-
-    #[tokio::test]
-    async fn test_respond_to_task() {
-        let publisher = Publisher::new(
-            "http://127.0.0.1:8545",
-            "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-            "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
-        )
-        .unwrap();
-
-        let rollup_id = "rollup_id".to_owned();
-        let cluster_id = "cluster_id".to_owned();
-        let block_number = 0;
-        let response = true;
-
-        publisher
-            .respond_to_task(rollup_id, cluster_id, block_number, response)
+            .get_distribution_data(cluster_id, rollup_id, task_index)
             .await
             .unwrap();
     }
