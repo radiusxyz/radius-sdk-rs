@@ -1,19 +1,25 @@
-//! Lightweight JSON RPC client for tx_orderer with the following
-//! functionalities:
-//! - [RpcClient::multicast]
-//! - [RpcClient::fetch]
-use std::{pin::Pin, sync::Arc, time::Duration};
+mod error;
+mod types;
 
+use std::{
+    collections::BinaryHeap,
+    pin::Pin,
+    sync::{Arc, Mutex},
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+
+pub use error::*;
 use futures::{
     future::{join_all, select_ok, Fuse},
     FutureExt,
 };
 use reqwest::{Client, ClientBuilder};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::{
-    value::{to_raw_value, RawValue},
-    Value,
+use serde::{de::DeserializeOwned, Serialize};
+use tokio::{
+    sync::{oneshot, Notify},
+    task,
 };
+pub use types::*;
 
 #[derive(Default)]
 pub struct RpcClientBuilder(ClientBuilder);
@@ -21,31 +27,33 @@ pub struct RpcClientBuilder(ClientBuilder);
 impl RpcClientBuilder {
     /// Set the connection timeout in milliseconds.
     pub fn connection_timeout(self, timeout: u64) -> Self {
-        let timeout = Duration::from_millis(timeout);
-        let builder = self.0.connect_timeout(timeout);
-
-        Self(builder)
+        Self(self.0.connect_timeout(Duration::from_millis(timeout)))
     }
 
     /// Set the request timeout in milliseconds.
     pub fn request_timeout(self, timeout: u64) -> Self {
-        let timeout = Duration::from_millis(timeout);
-        let builder = self.0.read_timeout(timeout);
-
-        Self(builder)
+        Self(self.0.read_timeout(Duration::from_millis(timeout)))
     }
 
     pub fn build(self) -> Result<RpcClient, RpcClientError> {
-        let rpc_client = RpcClient {
-            inner: self.0.build().map_err(RpcClientError::Initialize)?,
-        };
-
-        Ok(rpc_client)
+        Ok(RpcClient {
+            inner: Arc::new(RpcClientInner {
+                client: Arc::new(self.0.build().map_err(RpcClientError::Initialize)?),
+                rpc_requests: Mutex::new(BinaryHeap::new()),
+                notify: Notify::new(),
+            }),
+        })
     }
 }
 
 pub struct RpcClient {
-    inner: Client,
+    inner: Arc<RpcClientInner>,
+}
+
+struct RpcClientInner {
+    client: Arc<Client>,
+    rpc_requests: Mutex<BinaryHeap<(String, PriorityRequest)>>,
+    notify: Notify,
 }
 
 impl RpcClient {
@@ -53,75 +61,106 @@ impl RpcClient {
         RpcClientBuilder::default()
     }
 
-    pub fn new() -> Result<Self, RpcClientError> {
-        let rpc_client = Self {
-            inner: ClientBuilder::default()
-                .build()
-                .map_err(RpcClientError::Initialize)?,
-        };
+    pub fn new() -> Result<Arc<Self>, RpcClientError> {
+        let rpc_client = Arc::new(Self {
+            inner: Arc::new(RpcClientInner {
+                client: Arc::new(
+                    ClientBuilder::default()
+                        .build()
+                        .map_err(RpcClientError::Initialize)?,
+                ),
+                rpc_requests: Mutex::new(BinaryHeap::new()),
+                notify: Notify::new(),
+            }),
+        });
+
+        let cloned_rpc_client = Arc::clone(&rpc_client);
+        tokio::spawn(async move { cloned_rpc_client.process_priority_requests().await });
 
         Ok(rpc_client)
     }
 
-    async fn request_inner<P, R>(
+    async fn process_priority_requests(&self) {
+        loop {
+            self.inner.notify.notified().await;
+
+            let mut rpc_requests = self.inner.rpc_requests.lock().unwrap();
+            while let Some((rpc_url, priority_request)) = rpc_requests.pop() {
+                let client = Arc::clone(&self.inner.client);
+
+                println!("Priority {:?} ", priority_request.priority);
+
+                if priority_request.sync_mode {
+                    task::spawn(async move {
+                        let response = client
+                            .post(&rpc_url)
+                            .json(&priority_request.request)
+                            .send()
+                            .await
+                            .map_err(RpcClientError::Request)?
+                            .json::<Response>()
+                            .await
+                            .map_err(RpcClientError::ParseResponse)?;
+
+                        let _ = priority_request.channel_sender.send(response);
+                        Ok::<_, RpcClientError>(())
+                    });
+                } else {
+                    let _ = client.post(&rpc_url).json(&priority_request.request).send();
+                }
+            }
+        }
+    }
+
+    pub async fn fire_and_forget<P>(
         &self,
-        url: impl AsRef<str>,
-        payload: P,
-    ) -> Result<R, RpcClientError>
-    where
-        P: Serialize,
-        R: DeserializeOwned,
-    {
-        self.inner
-            .post(url.as_ref())
-            .json(&payload)
-            .send()
-            .await
-            .map_err(RpcClientError::Request)?
-            .json::<R>()
-            .await
-            .map_err(RpcClientError::ParseResponse)
-    }
-
-    async fn fire_and_forget<P>(&self, url: impl AsRef<str>, payload: P)
-    where
+        rpc_url: impl AsRef<str>,
+        method: impl AsRef<str>,
+        parameter: P,
+        id: impl Into<Id>,
+    ) where
         P: Serialize,
     {
-        let _ = self.inner.post(url.as_ref()).json(&payload).send().await;
+        self.fire_and_forget_with_priority(rpc_url, method, parameter, id, Priority::Low)
+            .await;
     }
 
-    /// Send an RPC request and wait for the response.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use radius_sdk::json_rpc::client::RpcClient;
-    /// use serde::Serialize;
-    ///
-    /// #[derive(Clone, Debug, Serialize)]
-    /// pub struct GetTransactionCount(Vec<String>);
-    ///
-    /// impl GetTransactionCount {
-    ///     pub fn new(address: &str) -> Self {
-    ///         Self(vec![address.to_owned(), "latest".to_owned()])
-    ///     }
-    /// }
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let rpc_url = "http://127.0.0.1:8545";
-    ///     let parameter = GetTransactionCount::new("0xc6972a7b408b83ceca73da73511df7ce9469608d");
-    ///
-    ///     let rpc_client = RpcClient::new().unwrap();
-    ///
-    ///     let rpc_response: String = rpc_client
-    ///         .request(rpc_url, "eth_getTransactionCount", &parameter, "ID")
-    ///         .await
-    ///         .unwrap();
-    ///
-    ///     println!("{:?}", rpc_response);
-    /// }
-    /// ```
+    pub async fn fire_and_forget_with_priority<P>(
+        &self,
+        rpc_url: impl AsRef<str>,
+        method: impl AsRef<str>,
+        parameter: P,
+        id: impl Into<Id>,
+        priority: Priority,
+    ) where
+        P: Serialize,
+    {
+        let (channel_sender, rx) = oneshot::channel();
+        let request = Request::new(method, &parameter, id)
+            .map_err(RpcClientError::Serialize)
+            .unwrap();
+
+        let priority_request = PriorityRequest {
+            priority,
+            request,
+            channel_sender,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
+            sync_mode: false,
+        };
+
+        {
+            let mut rpc_requests = self.inner.rpc_requests.lock().unwrap();
+            rpc_requests.push((rpc_url.as_ref().to_string(), priority_request));
+        }
+
+        self.inner.notify.notify_one();
+
+        let _ = rx.await.map_err(|_| RpcClientError::ChannelRecv);
+    }
+
     pub async fn request<P, R>(
         &self,
         rpc_url: impl AsRef<str>,
@@ -133,205 +172,70 @@ impl RpcClient {
         P: Serialize,
         R: DeserializeOwned,
     {
-        let request =
-            RequestObject::new(method, &parameter, id).map_err(RpcClientError::Serialize)?;
-        let response: ResponseObject = self.request_inner(rpc_url, &request).await?;
-
-        if response.id != request.id {
-            return Err(RpcClientError::IdMismatch);
-        }
-
-        response.into_payload().parse::<R>()
+        self.request_with_priority(rpc_url, method, parameter, id, Priority::Low)
+            .await
     }
 
-    /// Send a batch of several requests at the same time and get the response
-    /// as a vector of RPC response object [Payload].
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use radius_sdk::json_rpc::client::{BatchRequest, RpcClient};
-    /// use serde::Serialize;
-    ///
-    /// #[derive(Clone, Debug, Serialize)]
-    /// pub struct GetTransactionCount(Vec<String>);
-    ///
-    /// impl GetTransactionCount {
-    ///     pub fn new(address: &str) -> Self {
-    ///         Self(vec![address.to_owned(), "latest".to_owned()])
-    ///     }
-    /// }
-    ///
-    /// #[derive(Clone, Debug, Serialize)]
-    /// pub struct Invalid(String);
-    ///
-    /// impl Invalid {
-    ///     pub fn new(value: impl AsRef<str>) -> Self {
-    ///         Self(value.as_ref().to_owned())
-    ///     }
-    /// }
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let rpc_url = "http://127.0.0.1:8545";
-    ///     let parameter_1 = GetTransactionCount::new("0xc6972a7b408b83ceca73da73511df7ce9469608d");
-    ///     let parameter_2 = GetTransactionCount::new("0x5fae6ea6fc7d75aff5bc37faddffd382c8b12442");
-    ///     let parameter_3 = GetTransactionCount::new("0x157787214841195353a31443338e493421d989d6");
-    ///     let parameter_4 = Invalid::new("invalid");
-    ///
-    ///     let mut batch_request = BatchRequest::new();
-    ///     batch_request
-    ///         .push("eth_getTransactionCount", &parameter_1, "address_1")
-    ///         .unwrap();
-    ///     batch_request
-    ///         .push("eth_getTransactionCount", &parameter_2, "address_2")
-    ///         .unwrap();
-    ///     batch_request
-    ///         .push("eth_getTransactionCount", &parameter_3, "address_3")
-    ///         .unwrap();
-    ///     batch_request
-    ///         .push("invalid", &parameter_4, "invalid")
-    ///         .unwrap();
-    ///
-    ///     let rpc_client = RpcClient::new().unwrap();
-    ///
-    ///     let batch_response = rpc_client
-    ///         .batch_request(rpc_url, &batch_request)
-    ///         .await
-    ///         .unwrap();
-    ///     for (index, response) in batch_response.into_iter().enumerate() {
-    ///         match response.parse::<String>() {
-    ///             Ok(nonce) => println!("Nonce for Address {}: {:?}", index, nonce),
-    ///             Err(error) => println!("Error: {}", error),
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    pub async fn batch_request(
+    pub async fn request_with_priority<P, R>(
         &self,
         rpc_url: impl AsRef<str>,
-        batch_request: &BatchRequest,
-    ) -> Result<Vec<Payload>, RpcClientError> {
-        let response_objects: Vec<ResponseObject> =
-            self.request_inner(rpc_url, &batch_request).await?;
-
-        let payloads: Vec<Payload> = batch_request
-            .iter()
-            .zip(response_objects.into_iter())
-            .map(|(request, response)| {
-                if request.id == response.id {
-                    Ok(response.into_payload())
-                } else {
-                    Err(RpcClientError::IdMismatch)
-                }
-            })
-            .collect::<Result<Vec<Payload>, RpcClientError>>()?;
-
-        Ok(payloads)
-    }
-
-    /// Send RPC requests to multiple endpoints. Once transactions are sent,
-    /// the function short-circuits without waiting for responses.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use radius_sdk::json_rpc::client::RpcClient;
-    /// use serde::Serialize;
-    ///
-    /// #[derive(Clone, Debug, Serialize)]
-    /// pub struct GetTransactionCount(Vec<String>);
-    ///
-    /// impl GetTransactionCount {
-    ///     pub fn new(address: &str) -> Self {
-    ///         Self(vec![address.to_owned(), "latest".to_owned()])
-    ///     }
-    /// }
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let rpc_urls = vec![
-    ///         "http://127.0.0.1:8545",
-    ///         "http://127.0.0.1:8546",
-    ///         "http://127.0.0.1:8547",
-    ///     ];
-    ///     let parameter = GetTransactionCount::new("0xc6972a7b408b83ceca73da73511df7ce9469608d");
-    ///
-    ///     let rpc_client = RpcClient::new().unwrap();
-    ///
-    ///     rpc_client
-    ///         .multicast(rpc_urls, "eth_getTransactionCount", &parameter, 0)
-    ///         .await
-    ///         .unwrap();
-    /// }
-    /// ```
-    pub async fn multicast<P>(
-        &self,
-        rpc_urls: Vec<impl AsRef<str>>,
         method: impl AsRef<str>,
-        parameter: &P,
+        parameter: P,
         id: impl Into<Id>,
-    ) -> Result<(), RpcClientError>
+        priority: Priority,
+    ) -> Result<R, RpcClientError>
     where
         P: Serialize,
+        R: DeserializeOwned,
     {
-        let request: Arc<RequestObject> = RequestObject::new(method, parameter, id)
-            .map_err(RpcClientError::Serialize)?
-            .into();
+        let (channel_sender, rx) = oneshot::channel();
+        let request = Request::new(method, &parameter, id).map_err(RpcClientError::Serialize)?;
 
-        let tasks: Vec<_> = rpc_urls
-            .into_iter()
-            .map(|rpc_url| self.fire_and_forget(rpc_url, request.clone()))
-            .collect();
+        let priority_request = PriorityRequest {
+            priority,
+            request,
+            channel_sender,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
+            sync_mode: true,
+        };
 
-        join_all(tasks).await;
+        {
+            let mut rpc_requests = self.inner.rpc_requests.lock().unwrap();
+            rpc_requests.push((rpc_url.as_ref().to_string(), priority_request));
+        }
 
-        Ok(())
+        self.inner.notify.notify_one();
+
+        let response = rx.await.map_err(|_| RpcClientError::ChannelRecv)?;
+
+        response.parse_payload::<R>()
     }
 
-    /// Send RPC requests to multiple endpoints and return the first successful
-    /// response or an error if none of the responses succeeds.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use radius_sdk::json_rpc::client::RpcClient;
-    /// use serde::Serialize;
-    ///
-    /// #[derive(Serialize)]
-    /// pub struct GetTransactionCount(Vec<String>);
-    ///
-    /// impl GetTransactionCount {
-    ///     pub fn new(address: &str) -> Self {
-    ///         Self(vec![address.to_owned(), "latest".to_owned()])
-    ///     }
-    /// }
-    ///
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     let rpc_urls = vec![
-    ///         "http://127.0.0.1:8545",
-    ///         "http://127.0.0.1:8546",
-    ///         "http://127.0.0.1:8547",
-    ///     ];
-    ///     let parameter = GetTransactionCount::new("0xc6972a7b408b83ceca73da73511df7ce9469608d");
-    ///
-    ///     let rpc_client = RpcClient::new().unwrap();
-    ///
-    ///     let first_successful_response: String = rpc_client
-    ///         .fetch(rpc_urls, "eth_getTransactionCount", &parameter, 0)
-    ///         .await
-    ///         .unwrap();
-    ///
-    ///     println!("{:?}", first_successful_response);
-    /// }
-    /// ```
     pub async fn fetch<P, R>(
         &self,
         rpc_url_list: Vec<impl AsRef<str>>,
         method: impl AsRef<str>,
         parameter: &P,
         id: impl Into<Id>,
+    ) -> Result<R, RpcClientError>
+    where
+        P: Clone + Serialize,
+        R: DeserializeOwned,
+    {
+        self.fetch_with_priority(rpc_url_list, method, parameter, id, Priority::Low)
+            .await
+    }
+
+    pub async fn fetch_with_priority<P, R>(
+        &self,
+        rpc_url_list: Vec<impl AsRef<str>>,
+        method: impl AsRef<str>,
+        parameter: &P,
+        id: impl Into<Id>,
+        priority: Priority,
     ) -> Result<R, RpcClientError>
     where
         P: Clone + Serialize,
@@ -345,8 +249,14 @@ impl RpcClient {
             .into_iter()
             .map(|rpc_url| {
                 Box::pin(
-                    self.request::<Arc<P>, R>(rpc_url, method.clone(), request.clone(), id.clone())
-                        .fuse(),
+                    self.request_with_priority::<Arc<P>, R>(
+                        rpc_url,
+                        method.clone(),
+                        request.clone(),
+                        id.clone(),
+                        priority,
+                    )
+                    .fuse(),
                 )
             })
             .collect();
@@ -357,158 +267,183 @@ impl RpcClient {
 
         Ok(response)
     }
-}
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum Id {
-    String(String),
-    Number(i64),
-    Null,
-}
-
-impl From<&str> for Id {
-    fn from(value: &str) -> Self {
-        Self::String(value.to_owned())
-    }
-}
-
-impl From<String> for Id {
-    fn from(value: String) -> Self {
-        Self::String(value)
-    }
-}
-
-impl From<i64> for Id {
-    fn from(value: i64) -> Self {
-        Self::Number(value)
-    }
-}
-
-impl<T: Into<Id>> From<Option<T>> for Id {
-    fn from(value: Option<T>) -> Self {
-        match value {
-            Some(v) => v.into(),
-            None => Self::Null,
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-struct RequestObject {
-    jsonrpc: &'static str,
-    method: String,
-    params: Box<RawValue>,
-    id: Id,
-}
-
-impl RequestObject {
-    const JSON_RPC: &str = "2.0";
-
-    pub fn new<P: Serialize>(
-        method: impl AsRef<str>,
-        parameter: P,
-        id: impl Into<Id>,
-    ) -> Result<Self, serde_json::Error> {
-        let params = to_raw_value(&parameter)?;
-
-        Ok(Self {
-            jsonrpc: Self::JSON_RPC,
-            method: method.as_ref().to_owned(),
-            params,
-            id: id.into(),
-        })
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct ResponseObject {
-    jsonrpc: String,
-    #[serde(flatten)]
-    payload: Payload,
-    id: Id,
-}
-
-impl ResponseObject {
-    fn into_payload(self) -> Payload {
-        self.payload
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Payload {
-    Result(Value),
-    Error {
-        code: i32,
-        message: String,
-        data: Option<Id>,
-    },
-}
-
-impl Payload {
-    pub fn parse<T: DeserializeOwned>(self) -> Result<T, RpcClientError> {
-        match self {
-            Self::Result(value) => {
-                serde_json::from_value::<T>(value).map_err(RpcClientError::Deserialize)
-            }
-            Self::Error {
-                code: _,
-                message,
-                data: _,
-            } => Err(RpcClientError::Response(message)),
-        }
-    }
-}
-
-#[derive(Debug, Default, Serialize)]
-pub struct BatchRequest(Vec<RequestObject>);
-
-impl BatchRequest {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn push<P>(
-        &mut self,
+    pub async fn multicast<P>(
+        &self,
+        rpc_urls: Vec<impl AsRef<str>>,
         method: impl AsRef<str>,
         parameter: &P,
-        id: impl Into<Id>,
+        id: impl Into<Id> + Clone,
     ) -> Result<(), RpcClientError>
     where
         P: Serialize,
     {
-        let rpc_request =
-            RequestObject::new(method, parameter, id).map_err(RpcClientError::Serialize)?;
-        self.0.push(rpc_request);
+        self.multicast_with_priority(rpc_urls, method, parameter, id, Priority::Low)
+            .await
+    }
+
+    pub async fn multicast_with_priority<P>(
+        &self,
+        rpc_urls: Vec<impl AsRef<str>>,
+        method: impl AsRef<str>,
+        parameter: &P,
+        id: impl Into<Id> + Clone,
+        priority: Priority,
+    ) -> Result<(), RpcClientError>
+    where
+        P: Serialize,
+    {
+        let tasks: Vec<_> = rpc_urls
+            .into_iter()
+            .map(|rpc_url| {
+                self.fire_and_forget_with_priority(
+                    rpc_url,
+                    &method,
+                    parameter,
+                    id.clone(),
+                    priority,
+                )
+            })
+            .collect();
+
+        join_all(tasks).await;
 
         Ok(())
     }
+}
 
-    fn iter(&self) -> std::slice::Iter<RequestObject> {
-        self.0.iter()
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use serde::Deserialize;
+    use serde_json::json;
+    use types::Id;
+
+    use super::*;
+
+    async fn setup_client() -> Arc<RpcClient> {
+        RpcClient::new().expect("Failed to create client")
+    }
+
+    #[derive(Clone, Debug, Deserialize, Serialize)]
+    pub struct GetVersionResponse {
+        pub version: Version,
+    }
+
+    #[derive(Clone, Debug, Deserialize, Serialize)]
+    pub struct Version {
+        pub code_version: String,
+        pub database_version: String,
+    }
+
+    const RPC_URL: &str = "http://34.55.76.165:3000";
+
+    #[tokio::test]
+    async fn test_basic_request() {
+        let client = setup_client().await;
+
+        let response: GetVersionResponse = client
+            .request(RPC_URL, "get_version", json!({}), Id::Number(1))
+            .await
+            .expect("Failed to request");
+
+        println!("Response: {:?}", response);
+    }
+
+    #[tokio::test]
+    async fn test_priority_request() {
+        let client = setup_client().await;
+
+        let cloned_client_low = Arc::clone(&client);
+        let response_low = tokio::spawn(async move {
+            cloned_client_low
+                .request_with_priority(
+                    RPC_URL,
+                    "get_version",
+                    json!({}),
+                    Id::Number(2),
+                    Priority::Low, // Low priority
+                )
+                .await
+        });
+
+        let cloned_client_high = Arc::clone(&client);
+        let response_high = tokio::spawn(async move {
+            cloned_client_high
+                .request_with_priority(
+                    RPC_URL,
+                    "get_block_height",
+                    json!({"rollup_id": "nodeinfra"}),
+                    Id::Number(3),
+                    Priority::High, // High priority
+                )
+                .await
+        });
+
+        let high_priority_result: u64 = response_high
+            .await
+            .unwrap()
+            .expect("Fail to request high priority");
+        let low_priority_result: GetVersionResponse = response_low
+            .await
+            .unwrap()
+            .expect("Fail to request low priority");
+
+        println!("High priority: {:?}", high_priority_result);
+        println!("Low priority: {:?}", low_priority_result);
+    }
+
+    #[tokio::test]
+    async fn test_multiple_requests() {
+        let client = setup_client().await;
+
+        let mut tasks = vec![];
+
+        for i in 0..100 {
+            let client_clone = Arc::clone(&client);
+            let rpc_url_clone = RPC_URL.to_string();
+
+            let task = tokio::spawn(async move {
+                let response: GetVersionResponse = client_clone
+                    .request_with_priority(
+                        rpc_url_clone,
+                        "get_version",
+                        json!({}),
+                        Id::Number(i + 10),
+                        Priority::Custom(i as u8),
+                    )
+                    .await
+                    .unwrap();
+                println!("Request {} response: {:?}", i, response);
+            });
+
+            tasks.push(task);
+        }
+
+        tokio::task::yield_now().await;
+
+        futures::future::join_all(tasks).await;
+    }
+
+    #[derive(Clone, Debug, Serialize)]
+    pub struct GetTransactionCount(Vec<String>);
+
+    #[tokio::test]
+    async fn test_fetch() {
+        let client = setup_client().await;
+
+        let rpc_urls = vec![
+            "http://34.55.76.165:3000",
+            "http://34.55.76.165:3000",
+            "http://34.55.76.165:3000",
+        ];
+
+        let first_successful_response: GetVersionResponse = client
+            .fetch(rpc_urls, "get_version", &json!({}), 0)
+            .await
+            .unwrap();
+
+        println!("{:?}", first_successful_response);
     }
 }
-
-#[derive(Debug)]
-pub enum RpcClientError {
-    Initialize(reqwest::Error),
-    Request(reqwest::Error),
-    ParseResponse(reqwest::Error),
-    Response(String),
-    IdMismatch,
-    Serialize(serde_json::Error),
-    Deserialize(serde_json::Error),
-    Fetch(Box<dyn std::error::Error>),
-}
-
-unsafe impl Send for RpcClientError {}
-
-impl std::fmt::Display for RpcClientError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for RpcClientError {}
