@@ -1,12 +1,39 @@
-use std::hash::Hash;
+use std::{fmt, hash::Hash};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{chain_type::*, error::SignatureError, Builder};
 
-#[derive(Clone, Debug, Eq, Hash, Deserialize, Serialize)]
+#[derive(Clone, Eq, Hash, Deserialize)]
 #[serde(try_from = "AddressType")]
 pub struct Address(Vec<u8>);
+
+impl Serialize for Address {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.as_hex_string())
+    }
+}
+
+impl Default for Address {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+
+impl fmt::Debug for Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_hex_string())
+    }
+}
+
+impl fmt::Display for Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_hex_string())
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
