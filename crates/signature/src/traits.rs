@@ -27,4 +27,10 @@ pub trait Verifier {
         message: &[u8],
         address: &[u8],
     ) -> Result<(), SignatureError>;
+
+    fn get_signer_address(
+        &self,
+        signature: &[u8],
+        message: &[u8],
+    ) -> Result<Address, SignatureError>;
 }

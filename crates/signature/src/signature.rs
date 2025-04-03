@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{chain_type::*, error::SignatureError, Verifier};
+use crate::{chain_type::*, error::SignatureError, Address, Verifier};
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(try_from = "SignatureType")]
@@ -54,6 +54,19 @@ impl Signature {
         chain_type
             .verifier()
             .verify_message(&self.0, &message_bytes, address.as_ref())
+    }
+
+    pub fn get_signer_address<T: Serialize>(
+        &self,
+        chain_type: ChainType,
+        message: &T,
+    ) -> Result<Address, SignatureError> {
+        let message_bytes =
+            bincode::serialize(message).map_err(SignatureError::SerializeMessage)?;
+
+        chain_type
+            .verifier()
+            .get_signer_address(&self.0, &message_bytes)
     }
 
     pub fn as_bytes(&self) -> &[u8] {

@@ -159,6 +159,19 @@ impl crate::Verifier for EthereumVerifier {
         message: &[u8],
         address: &[u8],
     ) -> Result<(), crate::SignatureError> {
+        let signer_address = self.get_signer_address(signature, message)?;
+
+        match signer_address == address {
+            true => Ok(()),
+            false => Err(EthereumError::AddressMismatch)?,
+        }
+    }
+
+    fn get_signer_address(
+        &self,
+        signature: &[u8],
+        message: &[u8],
+    ) -> Result<crate::Address, crate::SignatureError> {
         if signature.len() != 65 {
             return Err(EthereumError::InvalidSignatureLength(signature.len()))?;
         }
@@ -180,10 +193,8 @@ impl crate::Verifier for EthereumVerifier {
             &EthereumAddressBuilder,
             public_key.as_bytes(),
         )?;
-        match parsed_address == address {
-            true => Ok(()),
-            false => Err(EthereumError::AddressMismatch)?,
-        }
+
+        Ok(parsed_address)
     }
 }
 
