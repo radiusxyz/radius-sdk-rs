@@ -56,12 +56,10 @@ impl PartialEq for PriorityRequest {
 impl Eq for PriorityRequest {}
 
 impl Ord for PriorityRequest {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.priority.cmp(&other.priority) {
-            // Higher priority first
-            Ordering::Equal => other.timestamp.cmp(&self.timestamp), // Older first
-            ordering => ordering,
-        }
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.priority
+            .cmp(&other.priority)
+            .then_with(|| other.timestamp.cmp(&self.timestamp))
     }
 }
 

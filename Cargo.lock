@@ -2720,6 +2720,8 @@ name = "json-rpc-client"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "num_cpus",
+ "once_cell",
  "reqwest",
  "serde",
  "serde_json",
@@ -2733,8 +2735,11 @@ dependencies = [
  "http 1.2.0",
  "hyper 0.14.32",
  "jsonrpsee",
+ "num_cpus",
+ "once_cell",
  "serde",
  "serde_json",
+ "tokio",
  "tower 0.4.13",
  "tower-http",
  "trait-variant",

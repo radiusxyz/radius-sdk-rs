@@ -4,7 +4,7 @@ mod types;
 use std::{
     collections::BinaryHeap,
     pin::Pin,
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -13,26 +13,31 @@ use futures::{
     future::{join_all, select_ok, Fuse},
     FutureExt,
 };
+use num_cpus;
+use once_cell::sync::Lazy;
 use reqwest::{Client, ClientBuilder};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::{
-    sync::{oneshot, Notify},
+    sync::{oneshot, Mutex, Notify, Semaphore},
     task,
 };
 pub use types::*;
+
+static MAX_CONCURRENT_RPC: Lazy<Semaphore> = Lazy::new(|| {
+    let max_concurrency = num_cpus::get() * 4;
+    Semaphore::new(max_concurrency)
+});
 
 #[derive(Default)]
 pub struct RpcClientBuilder(ClientBuilder);
 
 impl RpcClientBuilder {
-    /// Set the connection timeout in milliseconds.
     pub fn connection_timeout(self, timeout: u64) -> Self {
         Self(self.0.connect_timeout(Duration::from_millis(timeout)))
     }
 
-    /// Set the request timeout in milliseconds.
     pub fn request_timeout(self, timeout: u64) -> Self {
-        Self(self.0.read_timeout(Duration::from_millis(timeout)))
+        Self(self.0.timeout(Duration::from_millis(timeout)))
     }
 
     pub fn build(self) -> Result<RpcClient, RpcClientError> {
@@ -84,34 +89,49 @@ impl RpcClient {
         loop {
             self.inner.notify.notified().await;
 
-            let mut rpc_requests = self.inner.rpc_requests.lock().unwrap();
-            while let Some((rpc_url, priority_request)) = rpc_requests.pop() {
-                let client = Arc::clone(&self.inner.client);
+            loop {
+                let rpc_request = {
+                    let mut rpc_requests = self.inner.rpc_requests.lock().await;
+                    rpc_requests.pop()
+                };
 
-                println!("Priority {:?} ", priority_request.priority);
+                if let Some((rpc_url, priority_request)) = rpc_request {
+                    let client = Arc::clone(&self.inner.client);
 
-                if priority_request.sync_mode {
-                    task::spawn(async move {
-                        let response = client
-                            .post(&rpc_url)
-                            .json(&priority_request.request)
-                            .send()
-                            .await
-                            .map_err(RpcClientError::Request)?
-                            .json::<Response>()
-                            .await
-                            .map_err(RpcClientError::ParseResponse)?;
+                    let permit = MAX_CONCURRENT_RPC.acquire().await.unwrap();
 
-                        let _ = priority_request.channel_sender.send(response);
-                        Ok::<_, RpcClientError>(())
-                    });
+                    if priority_request.sync_mode {
+                        task::spawn(async move {
+                            let response = client
+                                .post(&rpc_url)
+                                .json(&priority_request.request)
+                                .send()
+                                .await
+                                .map_err(RpcClientError::Request)?
+                                .json::<Response>()
+                                .await
+                                .map_err(RpcClientError::ParseResponse)?;
+
+                            let _ = priority_request.channel_sender.send(response);
+                            Ok::<_, RpcClientError>(())
+                        });
+                    } else {
+                        task::spawn(async move {
+                            let _ = client
+                                .post(&rpc_url)
+                                .json(&priority_request.request)
+                                .send()
+                                .await;
+                        });
+                    }
+
+                    drop(permit);
                 } else {
-                    let _ = client.post(&rpc_url).json(&priority_request.request).send();
+                    break;
                 }
             }
         }
     }
-
     pub async fn fire_and_forget<P>(
         &self,
         rpc_url: impl AsRef<str>,
@@ -135,7 +155,6 @@ impl RpcClient {
     ) where
         P: Serialize,
     {
-        let (channel_sender, rx) = oneshot::channel();
         let request = Request::new(method, &parameter, id)
             .map_err(RpcClientError::Serialize)
             .unwrap();
@@ -143,7 +162,7 @@ impl RpcClient {
         let priority_request = PriorityRequest {
             priority,
             request,
-            channel_sender,
+            channel_sender: oneshot::channel().0, // drop the receiver
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -152,13 +171,11 @@ impl RpcClient {
         };
 
         {
-            let mut rpc_requests = self.inner.rpc_requests.lock().unwrap();
+            let mut rpc_requests = self.inner.rpc_requests.lock().await;
             rpc_requests.push((rpc_url.as_ref().to_string(), priority_request));
         }
 
         self.inner.notify.notify_one();
-
-        let _ = rx.await.map_err(|_| RpcClientError::ChannelRecv);
     }
 
     pub async fn request<P, R>(
@@ -203,7 +220,7 @@ impl RpcClient {
         };
 
         {
-            let mut rpc_requests = self.inner.rpc_requests.lock().unwrap();
+            let mut rpc_requests = self.inner.rpc_requests.lock().await;
             rpc_requests.push((rpc_url.as_ref().to_string(), priority_request));
         }
 
@@ -268,7 +285,7 @@ impl RpcClient {
         Ok(response)
     }
 
-    pub async fn multicast<P>(
+    pub async fn fire_and_forget_multicast<P>(
         &self,
         rpc_urls: Vec<impl AsRef<str>>,
         method: impl AsRef<str>,
@@ -278,11 +295,11 @@ impl RpcClient {
     where
         P: Serialize,
     {
-        self.multicast_with_priority(rpc_urls, method, parameter, id, Priority::Low)
+        self.fire_and_forget_multicast_with_priority(rpc_urls, method, parameter, id, Priority::Low)
             .await
     }
 
-    pub async fn multicast_with_priority<P>(
+    pub async fn fire_and_forget_multicast_with_priority<P>(
         &self,
         rpc_urls: Vec<impl AsRef<str>>,
         method: impl AsRef<str>,
@@ -309,6 +326,43 @@ impl RpcClient {
         join_all(tasks).await;
 
         Ok(())
+    }
+
+    pub async fn multicast<P, R>(
+        &self,
+        rpc_urls: Vec<impl AsRef<str>>,
+        method: impl AsRef<str>,
+        parameter: &P,
+        id: impl Into<Id> + Clone,
+    ) -> Vec<Result<R, RpcClientError>>
+    where
+        P: Serialize,
+        R: DeserializeOwned,
+    {
+        self.multicast_with_priority(rpc_urls, method, parameter, id, Priority::Low)
+            .await
+    }
+
+    pub async fn multicast_with_priority<P, R>(
+        &self,
+        rpc_urls: Vec<impl AsRef<str>>,
+        method: impl AsRef<str>,
+        parameter: &P,
+        id: impl Into<Id> + Clone,
+        priority: Priority,
+    ) -> Vec<Result<R, RpcClientError>>
+    where
+        P: Serialize,
+        R: DeserializeOwned,
+    {
+        let tasks: Vec<_> = rpc_urls
+            .into_iter()
+            .map(|rpc_url| {
+                self.request_with_priority(rpc_url, &method, parameter, id.clone(), priority)
+            })
+            .collect();
+
+        join_all(tasks).await
     }
 }
 
