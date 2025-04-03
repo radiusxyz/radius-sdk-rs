@@ -1,14 +1,35 @@
-use std::{str::FromStr, sync::Arc};
+mod error;
+mod types;
 
+use std::{
+    collections::BinaryHeap,
+    str::FromStr,
+    sync::{
+        atomic::{AtomicU64, Ordering as AtomicOrdering},
+        Arc,
+    },
+};
+
+pub use error::*;
 use http::{header, method::Method, Extensions};
 pub use jsonrpsee::server::ServerHandle;
 use jsonrpsee::{
     server::{middleware::http::ProxyGetRequestLayer, RpcModule, Server},
-    types::{ErrorCode, ErrorObject, Params},
+    types::Params,
 };
+use num_cpus;
+use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Serialize};
+use tokio::{
+    sync::{Mutex, Semaphore},
+    task,
+    time::{sleep, Duration},
+};
 use tower_http::cors::{Any, CorsLayer};
+pub use types::*;
 use url::Url;
+
+static TASK_SEQUENCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
 
 #[trait_variant::make(RpcParameter: Send)]
 pub trait LocalRpcParameter<C>: DeserializeOwned + Serialize
@@ -19,7 +40,36 @@ where
 
     fn method() -> &'static str;
 
+    fn priority(&self) -> ProcessPriority {
+        ProcessPriority::Normal
+    }
+
     async fn handler(self, context: C) -> Result<Self::Response, RpcError>;
+}
+
+static TASK_QUEUE: Lazy<Mutex<BinaryHeap<PrioritizedRpcTask>>> =
+    Lazy::new(|| Mutex::new(BinaryHeap::new()));
+
+static MAX_CONCURRENT_REQUESTS: Lazy<Semaphore> = Lazy::new(|| {
+    let concurrency = num_cpus::get() * 4; // 또는 2 ~ 8 등 상황 맞게
+    Semaphore::new(concurrency)
+});
+
+async fn process_rpc_tasks() {
+    loop {
+        let task = {
+            let mut queue = TASK_QUEUE.lock().await;
+            queue.pop()
+        };
+
+        if let Some(task) = task {
+            let permit = MAX_CONCURRENT_REQUESTS.acquire().await.unwrap();
+            (task.job)();
+            drop(permit);
+        } else {
+            sleep(Duration::from_millis(10)).await;
+        }
+    }
 }
 
 pub struct RpcServer<C>
@@ -47,9 +97,33 @@ where
     where
         P: RpcParameter<C> + 'static,
     {
-        let parameter = parameter.parse::<P>()?;
+        let parsed = parameter.parse::<P>()?;
+        let priority = parsed.priority();
+        let sequence = TASK_SEQUENCE.fetch_add(1, AtomicOrdering::Relaxed);
+        let ctx = (*context).clone();
 
-        P::handler(parameter, (*context).clone()).await
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let task = PrioritizedRpcTask {
+            priority,
+            sequence,
+            job: Box::new(move || {
+                task::spawn(async move {
+                    let result = P::handler(parsed, ctx).await;
+                    let _ = tx.send(result);
+                });
+            }),
+        };
+
+        {
+            let mut queue = TASK_QUEUE.lock().await;
+            queue.push(task);
+        }
+
+        rx.await.map_err(|e| {
+            let io_err =
+                std::io::Error::new(std::io::ErrorKind::Other, format!("task canceled: {e}"));
+            RpcError::from(io_err)
+        })?
     }
 
     pub fn register_rpc_method<P>(mut self) -> Result<Self, RpcServerError>
@@ -89,72 +163,16 @@ where
 
         let server = Server::builder()
             .set_http_middleware(middleware)
+            .max_connections(1000)
             .build(rpc_url)
             .await
             .map_err(RpcServerError::Initialize)?;
+
+        // Start background task processor
+        tokio::spawn(process_rpc_tasks());
+
         let server_handle = server.start(self.rpc_module);
 
         Ok(server_handle)
     }
-}
-
-#[derive(Debug)]
-pub struct RpcError(Box<dyn std::error::Error + Send + 'static>);
-
-unsafe impl Send for RpcError {}
-
-impl std::fmt::Display for RpcError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<RpcError> for String {
-    fn from(value: RpcError) -> Self {
-        value.to_string()
-    }
-}
-
-impl From<RpcError> for ErrorObject<'static> {
-    fn from(value: RpcError) -> Self {
-        ErrorObject::owned::<i32>(ErrorCode::InternalError.code(), value, None)
-    }
-}
-
-impl<T> From<T> for RpcError
-where
-    T: std::error::Error + Send + 'static,
-{
-    fn from(value: T) -> Self {
-        Self(Box::new(value))
-    }
-}
-
-#[derive(Debug)]
-pub enum RpcServerError {
-    Middleware(jsonrpsee::server::middleware::http::InvalidPath),
-    Parse(ParseError),
-    RegisterMethod(jsonrpsee::server::RegisterMethodError),
-    Initialize(std::io::Error),
-}
-
-impl std::fmt::Display for RpcServerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for RpcServerError {}
-
-impl From<ParseError> for RpcServerError {
-    fn from(value: ParseError) -> Self {
-        Self::Parse(value)
-    }
-}
-
-#[derive(Debug)]
-pub enum ParseError {
-    InvalidHost,
-    InvalidPort,
-    InvalidRpcUrl(url::ParseError),
 }
