@@ -12,13 +12,10 @@ use std::{
 
 pub use error::*;
 use http::{header, method::Method, Extensions};
-pub use jsonrpsee::server::ServerHandle;
 use jsonrpsee::{
-    server::{middleware::http::ProxyGetRequestLayer, RpcModule, Server},
+    server::{middleware::http::ProxyGetRequestLayer, RpcModule, Server, ServerHandle},
     types::Params,
 };
-use num_cpus;
-use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::{
     sync::{Mutex, Semaphore},
@@ -28,8 +25,6 @@ use tokio::{
 use tower_http::cors::{Any, CorsLayer};
 pub use types::*;
 use url::Url;
-
-static TASK_SEQUENCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(0));
 
 #[trait_variant::make(RpcParameter: Send)]
 pub trait LocalRpcParameter<C>: DeserializeOwned + Serialize
@@ -47,36 +42,16 @@ where
     async fn handler(self, context: C) -> Result<Self::Response, RpcError>;
 }
 
-static TASK_QUEUE: Lazy<Mutex<BinaryHeap<PrioritizedRpcTask>>> =
-    Lazy::new(|| Mutex::new(BinaryHeap::new()));
-
-static MAX_CONCURRENT_REQUESTS: Lazy<Semaphore> = Lazy::new(|| {
-    let concurrency = num_cpus::get() * 4; // 또는 2 ~ 8 등 상황 맞게
-    Semaphore::new(concurrency)
-});
-
-async fn process_rpc_tasks() {
-    loop {
-        let task = {
-            let mut queue = TASK_QUEUE.lock().await;
-            queue.pop()
-        };
-
-        if let Some(task) = task {
-            let permit = MAX_CONCURRENT_REQUESTS.acquire().await.unwrap();
-            (task.job)();
-            drop(permit);
-        } else {
-            sleep(Duration::from_millis(10)).await;
-        }
-    }
-}
+// ---- RpcServer ----
 
 pub struct RpcServer<C>
 where
     C: Clone + Send + Sync + 'static,
 {
-    rpc_module: RpcModule<C>,
+    rpc_module: Mutex<RpcModule<C>>,
+    task_sequence: AtomicU64,
+    task_queue: Mutex<BinaryHeap<PrioritizedRpcTask>>,
+    max_concurrent_requests: Semaphore,
 }
 
 impl<C> RpcServer<C>
@@ -84,12 +59,35 @@ where
     C: Clone + Send + Sync + 'static,
 {
     pub fn new(context: C) -> Self {
+        let concurrency = num_cpus::get() * 4;
+
         Self {
-            rpc_module: RpcModule::new(context),
+            rpc_module: Mutex::new(RpcModule::new(context)),
+            task_sequence: AtomicU64::new(0),
+            task_queue: Mutex::new(BinaryHeap::new()),
+            max_concurrent_requests: Semaphore::new(concurrency),
         }
     }
 
+    pub async fn register_rpc_method<P>(self: &Arc<Self>) -> Result<(), RpcServerError>
+    where
+        P: RpcParameter<C> + 'static,
+    {
+        let server = self.clone();
+        let mut module = self.rpc_module.lock().await;
+
+        module
+            .register_async_method(P::method(), move |params, ctx, ext| {
+                let server = server.clone();
+                Box::pin(async move { RpcServer::handler::<P>(server, params, ctx, ext).await })
+            })
+            .map_err(RpcServerError::RegisterMethod)?;
+
+        Ok(())
+    }
+
     async fn handler<P>(
+        server: Arc<Self>,
         parameter: Params<'static>,
         context: Arc<C>,
         _extensions: Extensions,
@@ -99,7 +97,7 @@ where
     {
         let parsed = parameter.parse::<P>()?;
         let priority = parsed.priority();
-        let sequence = TASK_SEQUENCE.fetch_add(1, AtomicOrdering::Relaxed);
+        let sequence = server.task_sequence.fetch_add(1, AtomicOrdering::Relaxed);
         let ctx = (*context).clone();
 
         let (tx, rx) = tokio::sync::oneshot::channel();
@@ -115,7 +113,7 @@ where
         };
 
         {
-            let mut queue = TASK_QUEUE.lock().await;
+            let mut queue = server.task_queue.lock().await;
             queue.push(task);
         }
 
@@ -126,18 +124,10 @@ where
         })?
     }
 
-    pub fn register_rpc_method<P>(mut self) -> Result<Self, RpcServerError>
-    where
-        P: RpcParameter<C> + 'static,
-    {
-        self.rpc_module
-            .register_async_method(P::method(), Self::handler::<P>)
-            .map_err(RpcServerError::RegisterMethod)?;
-
-        Ok(self)
-    }
-
-    pub async fn init(self, rpc_url: impl AsRef<str>) -> Result<ServerHandle, RpcServerError> {
+    pub async fn init(
+        self: Arc<Self>,
+        rpc_url: impl AsRef<str>,
+    ) -> Result<ServerHandle, RpcServerError> {
         let rpc_url = match Url::from_str(rpc_url.as_ref()) {
             Ok(url) => format!(
                 "{}:{}",
@@ -168,11 +158,32 @@ where
             .await
             .map_err(RpcServerError::Initialize)?;
 
-        // Start background task processor
-        tokio::spawn(process_rpc_tasks());
+        tokio::spawn(process_rpc_tasks(self.clone()));
 
-        let server_handle = server.start(self.rpc_module);
+        let rpc_module = self.rpc_module.lock().await.clone();
+        let handle = server.start(rpc_module);
+        Ok(handle)
+    }
+}
 
-        Ok(server_handle)
+// ---- Background Task Runner ----
+
+async fn process_rpc_tasks<C>(server: Arc<RpcServer<C>>)
+where
+    C: Clone + Send + Sync + 'static,
+{
+    loop {
+        let task = {
+            let mut queue = server.task_queue.lock().await;
+            queue.pop()
+        };
+
+        if let Some(task) = task {
+            let permit = server.max_concurrent_requests.acquire().await.unwrap();
+            (task.job)();
+            drop(permit);
+        } else {
+            sleep(Duration::from_millis(10)).await;
+        }
     }
 }
