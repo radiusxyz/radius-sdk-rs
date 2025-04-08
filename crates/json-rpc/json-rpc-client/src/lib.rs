@@ -291,8 +291,7 @@ impl RpcClient {
         method: impl AsRef<str>,
         parameter: &P,
         id: impl Into<Id> + Clone,
-    ) -> Result<(), RpcClientError>
-    where
+    ) where
         P: Serialize,
     {
         self.fire_and_forget_multicast_with_priority(rpc_urls, method, parameter, id, Priority::Low)
@@ -306,8 +305,7 @@ impl RpcClient {
         parameter: &P,
         id: impl Into<Id> + Clone,
         priority: Priority,
-    ) -> Result<(), RpcClientError>
-    where
+    ) where
         P: Serialize,
     {
         let tasks: Vec<_> = rpc_urls
@@ -324,8 +322,6 @@ impl RpcClient {
             .collect();
 
         join_all(tasks).await;
-
-        Ok(())
     }
 
     pub async fn multicast<P, R>(
