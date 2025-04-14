@@ -1,10 +1,33 @@
-use serde::{Deserialize, Serialize};
+use std::fmt;
+
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{chain_type::*, error::SignatureError, Address, Verifier};
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "SignatureType")]
 pub struct Signature(Vec<u8>);
+
+impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.as_hex_string())
+    }
+}
+
+impl fmt::Debug for Signature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_hex_string())
+    }
+}
+
+impl fmt::Display for Signature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_hex_string())
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
