@@ -1,4 +1,4 @@
-use std::{future::Future, str::FromStr};
+use std::future::Future;
 
 use alloy::providers::{ProviderBuilder, WsConnect};
 use futures::StreamExt;
@@ -7,7 +7,6 @@ use crate::types::*;
 
 pub struct Subscriber {
     connection_detail: WsConnect,
-    validation_contract_address: Address,
 }
 
 impl Subscriber {
@@ -23,24 +22,10 @@ impl Subscriber {
     /// )
     /// .unwrap();
     /// ```
-    pub fn new(
-        ethereum_websocket_url: impl AsRef<str>,
-        validation_contract_address: impl AsRef<str>,
-    ) -> Result<Self, SubscriberError> {
+    pub fn new(ethereum_websocket_url: impl AsRef<str>) -> Result<Self, SubscriberError> {
         let connection_detail = WsConnect::new(ethereum_websocket_url.as_ref());
 
-        let validation_contract_address = Address::from_str(validation_contract_address.as_ref())
-            .map_err(|error| {
-            SubscriberError::ParseContractAddress(
-                validation_contract_address.as_ref().to_owned(),
-                error,
-            )
-        })?;
-
-        Ok(Self {
-            connection_detail,
-            validation_contract_address,
-        })
+        Ok(Self { connection_detail })
     }
 
     /// Start listening to the Block commitment registration event.
@@ -72,8 +57,44 @@ impl Subscriber {
     ///     todo!("Validate the block commitment");
     /// }
     /// ```
-    pub async fn initialize_event_handler<CB, CTX, F>(
+    // pub async fn initialize_event_handler<CB, CTX, F>(
+    //     &self,
+    //     callback: CB,
+    //     context: CTX,
+    // ) -> Result<(), SubscriberError>
+    // where
+    //     CB: Fn(ValidationServiceManager::NewTaskCreated, CTX) -> F,
+    //     CTX: Clone + Send + Sync,
+    //     F: Future<Output = ()>,
+    // {
+    //     let provider = ProviderBuilder::new()
+    //         .on_ws(self.connection_detail.clone())
+    //         .await
+    //         .map_err(SubscriberError::WebsocketProvider)?;
+
+    //     let validation_contract =
+    // ValidationServiceManager::ValidationServiceManagerInstance::new(
+    //         self.validation_contract_address,
+    //         provider.clone(),
+    //     );
+
+    //     let mut validation_contract_event_stream = validation_contract
+    //         .NewTaskCreated_filter()
+    //         .subscribe()
+    //         .await
+    //         .map_err(SubscriberError::SubscribeToAvsContract)?
+    //         .into_stream();
+
+    //     while let Some(Ok(event)) = validation_contract_event_stream.next().await
+    // {         callback(event.0, context.clone()).await;
+    //     }
+
+    //     Err(SubscriberError::EventStreamDisconnected)
+    // }
+
+    pub async fn initialize_task_manager_event_handler<CB, CTX, F>(
         &self,
+        task_manager_contract_address: Address,
         callback: CB,
         context: CTX,
     ) -> Result<(), SubscriberError>
@@ -82,24 +103,66 @@ impl Subscriber {
         CTX: Clone + Send + Sync,
         F: Future<Output = ()>,
     {
+        /////
         let provider = ProviderBuilder::new()
             .on_ws(self.connection_detail.clone())
             .await
             .map_err(SubscriberError::WebsocketProvider)?;
 
-        let validation_contract = ValidationServiceManager::ValidationServiceManagerInstance::new(
-            self.validation_contract_address,
+        let task_manager_contract = ValidationServiceManager::ValidationServiceManagerInstance::new(
+            task_manager_contract_address,
             provider.clone(),
         );
 
-        let mut validation_contract_event_stream = validation_contract
+        let mut task_manager_contract_event_stream = task_manager_contract
             .NewTaskCreated_filter()
             .subscribe()
             .await
             .map_err(SubscriberError::SubscribeToAvsContract)?
             .into_stream();
 
-        while let Some(Ok(event)) = validation_contract_event_stream.next().await {
+        while let Some(Ok(event)) = task_manager_contract_event_stream.next().await {
+            callback(event.0, context.clone()).await;
+        }
+
+        Err(SubscriberError::EventStreamDisconnected)
+    }
+
+    pub async fn slash_requested_event_handler<CB, CTX, F>(
+        &self,
+        validation_service_manager_contract_address: Address,
+        callback: CB,
+        context: CTX,
+    ) -> Result<(), SubscriberError>
+    where
+        CB: Fn(ValidationServiceManager::SlashRequested, CTX) -> F,
+        CTX: Clone + Send + Sync,
+        F: Future<Output = ()>,
+    {
+        /////
+        let provider = ProviderBuilder::new()
+            .on_ws(self.connection_detail.clone())
+            .await
+            .map_err(SubscriberError::WebsocketProvider)?;
+
+        let validation_service_manager_contract =
+            ValidationServiceManager::ValidationServiceManagerInstance::new(
+                validation_service_manager_contract_address,
+                provider.clone(),
+            );
+
+        let mut validation_service_manager_contract_event_stream =
+            validation_service_manager_contract
+                .SlashRequested_filter()
+                .subscribe()
+                .await
+                .map_err(SubscriberError::SubscribeToAvsContract)?
+                .into_stream();
+
+        while let Some(Ok(event)) = validation_service_manager_contract_event_stream
+            .next()
+            .await
+        {
             callback(event.0, context.clone()).await;
         }
 

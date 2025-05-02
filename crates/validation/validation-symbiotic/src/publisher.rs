@@ -112,12 +112,12 @@ impl Publisher {
         }
     }
 
-    pub async fn register_block_commitment(
+    pub async fn register_batch_commitment(
         &self,
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
-        block_number: u64,
-        block_commitment: impl AsRef<[u8]>,
+        batch_number: u64,
+        batch_commitment: impl AsRef<[u8]>,
 
         reference_task_index: u64,
         vault_address_list: Vec<impl AsRef<str>>,
@@ -127,8 +127,8 @@ impl Publisher {
     ) -> Result<FixedBytes<32>, PublisherError> {
         let cluster_id = cluster_id.as_ref().to_owned();
         let rollup_id = rollup_id.as_ref().to_owned();
-        let block_number = U256::from(block_number);
-        let reference_task_index = U256::from(reference_task_index);
+        let batch_number = U256::from(batch_number);
+        let pending_reward_task_index = U256::from(reference_task_index);
 
         let vault_address_list = vault_address_list
             .iter()
@@ -148,26 +148,25 @@ impl Publisher {
             .map(|reward| U256::from(*reward))
             .collect::<Vec<U256>>();
 
-        let block_commitment: FixedBytes<32> = {
-            let length = block_commitment.as_ref().len();
+        let batch_commitment: FixedBytes<32> = {
+            let length = batch_commitment.as_ref().len();
             if length != 32 {
                 return Err(PublisherError::BlockCommitmentLength(length));
             }
 
-            FixedBytes::from_slice(block_commitment.as_ref())
+            FixedBytes::from_slice(batch_commitment.as_ref())
         };
 
-        let task_params: IValidationServiceManager::TaskParams =
-            IValidationServiceManager::TaskParams {
-                clusterId: cluster_id,
-                rollupId: rollup_id,
-                blockNumber: block_number,
-                blockCommitment: block_commitment,
-            };
+        let task_params: IValidationServiceManager::Task = IValidationServiceManager::Task {
+            clusterId: cluster_id,
+            rollupId: rollup_id,
+            batchNumber: batch_number,
+            batchCommitment: batch_commitment,
+        };
 
         let distribution_params: IValidationServiceManager::DistributionParams =
             IValidationServiceManager::DistributionParams {
-                referenceTaskIndex: reference_task_index,
+                pendingRewardTaskIndex: pending_reward_task_index,
                 vaultAddresses: vault_address_list,
                 operatorMerkleRoots: operator_merkle_root_list,
                 totalStakerReward: total_staker_reward_list,
@@ -185,6 +184,18 @@ impl Publisher {
             .map_err(PublisherError::RegisterBlockCommitment)?;
 
         Ok(transaction_hash)
+    }
+
+    pub async fn get_task_manager_contract_address(&self) -> Result<Address, PublisherError> {
+        let task_manager_contract_address = self
+            .validation_contract
+            .taskManager()
+            .call()
+            .await
+            .map_err(PublisherError::GetTaskManager)?
+            ._0;
+
+        Ok(task_manager_contract_address)
     }
 
     pub async fn respond_to_task(
@@ -283,6 +294,7 @@ pub enum PublisherError {
     RegisterBlockCommitment(TransactionError),
     RespondToTask(TransactionError),
     GetDistributionData(alloy::contract::Error),
+    GetTaskManager(alloy::contract::Error),
 }
 
 impl std::fmt::Display for PublisherError {
@@ -306,13 +318,13 @@ mod tests {
     // Arc<()>) {     println!("clusterId: {:?}", event.clusterId);
     //     println!("rollupId: {:?}", event.rollupId);
     //     println!("referenceTaskIndex: {:?}", event.referenceTaskIndex);
-    //     println!("blockNumber: {:?}", event.blockNumber);
-    //     println!("commitment: {:?}", event.blockCommitment);
+    //     println!("batchNumber: {:?}", event.batchNumber);
+    //     println!("commitment: {:?}", event.batchCommitment);
     //     println!("taskCreatedBlock: {:?}", event.taskCreatedBlock);
     // }
 
     // #[tokio::test]
-    // async fn test_register_block_commitment() {
+    // async fn test_register_batch_commitment() {
     //     let publisher = Publisher::new(
     //         "http://127.0.0.1:8545",
     //         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
@@ -338,7 +350,7 @@ mod tests {
     //     });
 
     //     publisher
-    //         .register_block_commitment("cluster_id", "rollup_id", 0, &[0u8; 32])
+    //         .register_batch_commitment("cluster_id", "rollup_id", 0, &[0u8; 32])
     //         .await
     //         .unwrap();
 
@@ -356,11 +368,11 @@ mod tests {
 
     //     let rollup_id = "rollup_id".to_owned();
     //     let cluster_id = "cluster_id".to_owned();
-    //     let block_number = 0;
+    //     let batch_number = 0;
     //     let response = true;
 
     //     publisher
-    //         .respond_to_task(rollup_id, cluster_id, block_number, response)
+    //         .respond_to_task(rollup_id, cluster_id, batch_number, response)
     //         .await
     //         .unwrap();
     // }
