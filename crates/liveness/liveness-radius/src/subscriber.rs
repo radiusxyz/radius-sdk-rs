@@ -112,7 +112,7 @@ impl Subscriber {
         F: Future<Output = ()>,
     {
         let provider = ProviderBuilder::new()
-            .on_ws(self.connection_detail.clone())
+            .connect_ws(self.connection_detail.clone())
             .await
             .map_err(SubscriberError::WebsocketProvider)?;
 

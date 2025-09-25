@@ -10,6 +10,7 @@ rocksdb = "0.22"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { version = "1", optional = true }
 tokio = { workspace = true, features = ["sync"] }
+thiserror = { workspace = true }
 
 [features]
 default = ["dep:serde_json"]

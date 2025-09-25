@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
-alloy = { version = "0.2", features = ["signer-local"] }
+alloy = { workspace = true, features = ["signer-local"] }
 serde_json = { workspace = true }
 
 [dependencies]
 bincode = { workspace = true }
-const-hex = "1.12"
-ed25519-dalek = "2.1"
-itoa = "1"
-k256 = { version = "0.13", features = ["ecdsa"] }
-rand_core = { version = "0.6", features = ["getrandom"] }
+const-hex = { workspace = true }
+ed25519-dalek = { workspace = true }
+itoa = { workspace = true }
+k256 = { workspace = true, features = ["ecdsa"] }
+rand_core = { workspace = true, features = ["getrandom"] }
 serde = { workspace = true, features = ["derive"] }
-sha3 = "0.10"
+sha3 = { workspace = true }

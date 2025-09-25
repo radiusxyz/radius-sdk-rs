@@ -4,10 +4,9 @@ use std::{
     path::Path,
     sync::{Arc, Once},
 };
-
+use thiserror::Error;
 use rocksdb::{Options, Transaction, TransactionDB, TransactionDBOptions};
 use serde::{de::DeserializeOwned, ser::Serialize};
-
 use crate::data_type::{deserialize, serialize};
 
 static mut KVSTORE: MaybeUninit<KvStore> = MaybeUninit::uninit();
@@ -430,34 +429,32 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum KvStoreError {
-    Open(rocksdb::Error),
-    DataType(crate::data_type::DataTypeError),
+    #[error("Failed to open the database {0}")]
+    Open(#[from] rocksdb::Error),
+    #[error("Failed to serialize or deserialize the data")]
+    DataType(#[from] crate::data_type::DataTypeError),
+    #[error("Failed to get the value {0}")]
     Get(rocksdb::Error),
+    #[error("Failed to get the value for update {0}")]
     GetMut(rocksdb::Error),
+    #[error("Failed to put the value {0}")]
     Put(rocksdb::Error),
+    #[error("Failed to commit the put operation {0}")]
     CommitPut(rocksdb::Error),
+    #[error("Failed to delete the value {0}")]
     Delete(rocksdb::Error),
+    #[error("Failed to commit the delete operation {0}")]
     CommitDelete(rocksdb::Error),
+    #[error("Failed to update the value {0}")]
     Update(rocksdb::Error),
+    #[error("Failed to commit the update operation {0}")]
     CommitUpdate(rocksdb::Error),
+    #[error("The key does not exist")]
     NoneType,
+    #[error("Failed to initialize the database")]
     Initialize,
-}
-
-impl std::fmt::Display for KvStoreError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for KvStoreError {}
-
-impl From<crate::data_type::DataTypeError> for KvStoreError {
-    fn from(value: crate::data_type::DataTypeError) -> Self {
-        Self::DataType(value)
-    }
 }
 
 impl KvStoreError {

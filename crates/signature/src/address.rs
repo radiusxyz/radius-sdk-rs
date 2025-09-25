@@ -6,7 +6,7 @@ use crate::{chain_type::*, error::SignatureError, Builder};
 
 #[derive(Clone, Debug, Eq, Hash, Deserialize, Serialize)]
 #[serde(try_from = "AddressType")]
-pub struct Address(Vec<u8>);
+pub struct Address(pub Vec<u8>);
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -68,5 +68,17 @@ impl Address {
 
     pub fn as_hex_string(&self) -> String {
         const_hex::encode_prefixed(&self.0)
+    }
+}
+
+impl From<Address> for String {
+    fn from(value: Address) -> Self {
+        value.as_hex_string()
+    }
+}
+
+impl From<String> for Address {
+    fn from(value: String) -> Self {
+        Self(value.as_bytes().to_vec())
     }
 }

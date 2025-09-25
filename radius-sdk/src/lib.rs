@@ -18,17 +18,13 @@ pub mod liveness {
     #[cfg(any(feature = "full", feature = "liveness-radius"))]
     pub use liveness_radius as radius;
 }
+#[cfg(feature = "full")]
+pub use primitives;
 #[cfg(any(feature = "full", feature = "signature"))]
 pub use signature;
+
 pub mod util;
-#[cfg(any(
-    feature = "full",
-    feature = "validation-eigenlayer",
-    feature = "validation-symbiotic"
-))]
-pub mod validation {
-    #[cfg(any(feature = "full", feature = "validation-eigenlayer"))]
-    pub use validation_eigenlayer as eigenlayer;
-    #[cfg(any(feature = "full", feature = "validation-symbiotic"))]
-    pub use validation_symbiotic as symbiotic;
+#[cfg(any(feature = "full", feature = "validation-service",))]
+pub mod validation_service {
+    pub use validation_service::*;
 }

@@ -5,11 +5,18 @@ use attribute::*;
 use impl_block::*;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{DeriveInput, Result};
+use syn::{parse_quote, DeriveInput, Result};
 
 pub fn expand_derive_model(input: &mut DeriveInput) -> Result<TokenStream> {
     let ident = &input.ident;
+    let generics = &input.generics;
     let kvstore_attribute = KvStoreAttribute::from_ast(input)?;
+    let mut generics_with_bounds = generics.clone();
+    for param in generics_with_bounds.type_params_mut() {
+        param.bounds.push(parse_quote!(Debug));
+        param.bounds.push(parse_quote!(Serialize));
+        param.bounds.push(parse_quote!(DeserializeOwned));
+    }
 
     let id = const_id(ident);
     let put = fn_put(&kvstore_attribute);
@@ -21,7 +28,7 @@ pub fn expand_derive_model(input: &mut DeriveInput) -> Result<TokenStream> {
     let delete = fn_delete(&kvstore_attribute);
 
     Ok(quote! {
-        impl #ident {
+        impl #generics_with_bounds #ident #generics {
             #id
             #put
             #get

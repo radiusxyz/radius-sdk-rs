@@ -1,9 +1,6 @@
 pub(crate) mod ethereum;
-
 use std::hash::Hash;
-
 use serde::{Deserialize, Serialize};
-
 use crate::{address::Address, signer::PrivateKeySigner, traits::*, SignatureError};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]

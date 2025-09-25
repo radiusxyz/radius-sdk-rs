@@ -2,7 +2,7 @@ use super::prelude::*;
 
 pub fn deserialize<T>(data: impl AsRef<[u8]>) -> Result<T, DataTypeError>
 where
-    T: Debug + DeserializeOwned + Serialize,
+    T: DeserializeOwned + Serialize,
 {
     serde_json::from_slice(data.as_ref()).map_err(|error| DataTypeError::Deserialize {
         type_name: any::type_name::<T>(),
@@ -12,7 +12,7 @@ where
 
 pub fn serialize<T>(data: &T) -> Result<Vec<u8>, DataTypeError>
 where
-    T: Debug + Serialize,
+    T: Serialize,
 {
     serde_json::to_vec(data).map_err(|error| DataTypeError::Serialize {
         type_name: any::type_name::<T>(),

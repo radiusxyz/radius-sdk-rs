@@ -7,6 +7,7 @@ use jsonrpsee::{
     types::{ErrorCode, ErrorObject, Params},
 };
 use serde::{de::DeserializeOwned, Serialize};
+use thiserror::Error;
 use tower_http::cors::{Any, CorsLayer};
 use url::Url;
 
@@ -130,31 +131,24 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum RpcServerError {
-    Middleware(jsonrpsee::server::middleware::http::InvalidPath),
-    Parse(ParseError),
-    RegisterMethod(jsonrpsee::server::RegisterMethodError),
-    Initialize(std::io::Error),
+    #[error("Failed to initialize the middleware {0}")]
+    Middleware(#[from] jsonrpsee::server::middleware::http::InvalidPath),
+    #[error("Failed to parse the RPC URL {0}")]
+    Parse(#[from] ParseError),
+    #[error("Failed to register the method {0}")]
+    RegisterMethod(#[from] jsonrpsee::server::RegisterMethodError),
+    #[error("Failed to initialize the server {0}")]
+    Initialize(#[from] std::io::Error),
 }
 
-impl std::fmt::Display for RpcServerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl std::error::Error for RpcServerError {}
-
-impl From<ParseError> for RpcServerError {
-    fn from(value: ParseError) -> Self {
-        Self::Parse(value)
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ParseError {
+    #[error("Invalid host")]
     InvalidHost,
+    #[error("Invalid port")]
     InvalidPort,
-    InvalidRpcUrl(url::ParseError),
+    #[error("Invalid RPC URL {0}")]
+    InvalidRpcUrl(#[from] url::ParseError),
 }

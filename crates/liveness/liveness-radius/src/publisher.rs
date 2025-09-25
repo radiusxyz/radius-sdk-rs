@@ -2,55 +2,17 @@ use std::str::FromStr;
 
 use alloy::{
     contract,
-    network::{Ethereum, EthereumWallet},
+    network::Ethereum,
     primitives::{Address, FixedBytes, Uint},
-    providers::{
-        fillers::{
-            BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller,
-            WalletFiller,
-        },
-        Identity, PendingTransactionBuilder, Provider, ProviderBuilder, RootProvider,
-        WalletProvider,
-    },
-    signers::local::LocalSigner,
+    providers::{PendingTransactionBuilder, Provider},
     sol_types::SolEvent,
-    transports::http::{reqwest::Url, Client, Http},
 };
 
 use crate::types::*;
 
-type EthereumHttpProvider = FillProvider<
-    JoinFill<
-        JoinFill<
-            Identity,
-            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
-        >,
-        WalletFiller<EthereumWallet>,
-    >,
-    RootProvider<Http<Client>>,
-    Http<Client>,
-    Ethereum,
->;
-
-type LivenessContract = Liveness::LivenessInstance<
-    Http<Client>,
-    FillProvider<
-        JoinFill<
-            JoinFill<
-                Identity,
-                JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
-            >,
-            WalletFiller<EthereumWallet>,
-        >,
-        RootProvider<Http<Client>>,
-        Http<Client>,
-        Ethereum,
-    >,
->;
-
-pub struct Publisher {
-    provider: EthereumHttpProvider,
-    liveness_contract: LivenessContract,
+pub struct LivenessContract<P: Provider> {
+    provider: P,
+    liveness: Liveness::LivenessInstance<P>,
 }
 
 pub struct ValidationInfo {
@@ -59,7 +21,7 @@ pub struct ValidationInfo {
     validation_service_manager: Address,
 }
 
-impl Publisher {
+impl<P: Provider> LivenessContract<P> {
     /// Create a new [`Publisher`] instance to call contract functions and send
     /// transactions.
     ///
@@ -73,55 +35,8 @@ impl Publisher {
     /// )
     /// .unwrap();
     /// ```
-    pub fn new(
-        ethereum_rpc_url: impl AsRef<str>,
-        signing_key: impl AsRef<str>,
-        liveness_contract_address: impl AsRef<str>,
-    ) -> Result<Self, PublisherError> {
-        let rpc_url: Url = ethereum_rpc_url
-            .as_ref()
-            .parse()
-            .map_err(|error| PublisherError::ParseEthereumRpcUrl(Box::new(error)))?;
-
-        let signer =
-            LocalSigner::from_str(signing_key.as_ref()).map_err(PublisherError::ParseSigningKey)?;
-
-        let wallet = EthereumWallet::new(signer.clone());
-
-        let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(wallet)
-            .on_http(rpc_url);
-
-        let liveness_contract_address = Address::from_str(liveness_contract_address.as_ref())
-            .map_err(|error| {
-                PublisherError::ParseAddress(liveness_contract_address.as_ref().to_owned(), error)
-            })?;
-        let liveness_contract =
-            Liveness::LivenessInstance::new(liveness_contract_address, provider.clone());
-
-        Ok(Self {
-            provider,
-            liveness_contract,
-        })
-    }
-
-    /// Get the address for the wallet used by [`Publisher`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let publisher = Publisher::new(
-    ///     "http://127.0.0.1:8545",
-    ///     "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-    ///     "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
-    /// )
-    /// .unwrap();
-    ///
-    /// let my_address = publisher.address();
-    /// ```
-    pub fn address(&self) -> Address {
-        self.provider.default_signer_address()
+    pub fn new(provider: P, liveness: Liveness::LivenessInstance<P>) -> Self {
+        Self { provider, liveness }
     }
 
     /// Get the latest Ethereum block number available.
@@ -167,15 +82,11 @@ impl Publisher {
     /// let block_margin = publisher.get_block_margin().await.unwrap();
     /// ```
     pub async fn get_block_margin(&self) -> Result<Uint<256, 4>, PublisherError> {
-        let block_margin = self
-            .liveness_contract
+        self.liveness
             .BLOCK_MARGIN()
             .call()
             .await
-            .map_err(PublisherError::GetBlockMargin)?
-            ._0;
-
-        Ok(block_margin)
+            .map_err(PublisherError::GetBlockMargin)
     }
 
     /// Send transaction to initialize the cluster and wait for the event
@@ -202,7 +113,7 @@ impl Publisher {
         max_sequencer_number: Uint<256, 4>,
     ) -> Result<Liveness::InitializedCluster, PublisherError> {
         let contract_call = self
-            .liveness_contract
+            .liveness
             .initializeCluster(cluster_id.as_ref().to_string(), max_sequencer_number);
         let pending_transaction = contract_call.send().await;
         let event: Liveness::InitializedCluster = self
@@ -271,7 +182,7 @@ impl Publisher {
         };
 
         let contract_call = self
-            .liveness_contract
+            .liveness
             .addRollup(cluster_id.as_ref().to_string(), new_rollup);
 
         let pending_transaction = contract_call.send().await;
@@ -321,7 +232,7 @@ impl Publisher {
                 PublisherError::ParseAddress(rollup_executor_address.as_ref().to_owned(), error)
             })?;
 
-        let contract_call = self.liveness_contract.registerRollupExecutor(
+        let contract_call = self.liveness.registerRollupExecutor(
             cluster_id.as_ref().to_string(),
             rollup_id.as_ref().to_string(),
             rollup_executor_address,
@@ -362,7 +273,7 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
     ) -> Result<Liveness::RegisteredSequencer, PublisherError> {
         let contract_call = self
-            .liveness_contract
+            .liveness
             .registerSequencer(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
         let event: Liveness::RegisteredSequencer = self
@@ -397,7 +308,7 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
     ) -> Result<Liveness::DeregisteredSequencer, PublisherError> {
         let contract_call = self
-            .liveness_contract
+            .liveness
             .deregisterSequencer(cluster_id.as_ref().to_string());
         let pending_transaction = contract_call.send().await;
         let event: Liveness::DeregisteredSequencer = self
@@ -433,16 +344,12 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
         block_number: u64,
     ) -> Result<Vec<Address>, PublisherError> {
-        let sequencer_list = self
-            .liveness_contract
+        self.liveness
             .getSequencers(cluster_id.as_ref().to_string())
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::GetSequencers)?
-            ._0;
-
-        Ok(sequencer_list)
+            .map_err(PublisherError::GetSequencers)
     }
 
     /// Get the addresses of registered rollups in a given cluster for a
@@ -472,7 +379,7 @@ impl Publisher {
         block_number: u64,
     ) -> Result<Vec<Address>, PublisherError> {
         let executor_list = self
-            .liveness_contract
+            .liveness
             .getExecutors(
                 cluster_id.as_ref().to_string(),
                 rollup_id.as_ref().to_string(),
@@ -480,8 +387,7 @@ impl Publisher {
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::GetSequencers)?
-            ._0;
+            .map_err(PublisherError::GetSequencers)?;
 
         let filtered_list: Vec<Address> = executor_list
             .into_iter()
@@ -496,16 +402,12 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
         block_number: u64,
     ) -> Result<Vec<ILivenessRadius::Rollup>, PublisherError> {
-        let executor_list = self
-            .liveness_contract
+        self.liveness
             .getRollups(cluster_id.as_ref().to_string())
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::GetRollups)?
-            ._0;
-
-        Ok(executor_list)
+            .map_err(PublisherError::GetRollups)
     }
 
     pub async fn get_rollup_info(
@@ -514,8 +416,7 @@ impl Publisher {
         rollup_id: impl AsRef<str>,
         block_number: u64,
     ) -> Result<ILivenessRadius::Rollup, PublisherError> {
-        let rollup_info = self
-            .liveness_contract
+        self.liveness
             .getRollup(
                 cluster_id.as_ref().to_string(),
                 rollup_id.as_ref().to_string(),
@@ -523,10 +424,7 @@ impl Publisher {
             .call()
             .block(block_number.into())
             .await
-            .map_err(PublisherError::GetRollup)?
-            ._0;
-
-        Ok(rollup_info)
+            .map_err(PublisherError::GetRollup)
     }
 
     /// # TODO:
@@ -550,15 +448,11 @@ impl Publisher {
         &self,
         cluster_id: impl AsRef<str>,
     ) -> Result<Uint<256, 4>, PublisherError> {
-        let max_sequencer_number = self
-            .liveness_contract
+        self.liveness
             .getMaxSequencerNumber(cluster_id.as_ref().to_string())
             .call()
             .await
-            .map_err(PublisherError::GetBlockMargin)?
-            ._0;
-
-        Ok(max_sequencer_number)
+            .map_err(PublisherError::GetBlockMargin)
     }
 
     pub async fn is_added_rollup(
@@ -566,18 +460,14 @@ impl Publisher {
         cluster_id: impl AsRef<str>,
         rollup_id: impl AsRef<str>,
     ) -> Result<bool, PublisherError> {
-        let is_rollup_added: bool = self
-            .liveness_contract
+        self.liveness
             .isRollupAdded(
                 cluster_id.as_ref().to_string(),
                 rollup_id.as_ref().to_string(),
             )
             .call()
             .await
-            .map_err(PublisherError::IsRegistered)?
-            ._0;
-
-        Ok(is_rollup_added)
+            .map_err(PublisherError::IsRegistered)
     }
 
     pub async fn is_rollup_executor_registered(
@@ -586,8 +476,7 @@ impl Publisher {
         rollup_id: impl AsRef<str>,
         executor_address: Address,
     ) -> Result<bool, PublisherError> {
-        let is_rollup_executor_registered: bool = self
-            .liveness_contract
+        self.liveness
             .isRollupExecutorRegistered(
                 cluster_id.as_ref().to_string(),
                 rollup_id.as_ref().to_string(),
@@ -595,10 +484,7 @@ impl Publisher {
             )
             .call()
             .await
-            .map_err(PublisherError::IsRegistered)?
-            ._0;
-
-        Ok(is_rollup_executor_registered)
+            .map_err(PublisherError::IsRegistered)
     }
 
     /// Check if the current publisher is registered as a sequencer in the
@@ -620,25 +506,19 @@ impl Publisher {
     /// ```
     pub async fn is_registered_sequencer(
         &self,
+        who: Address,
         cluster_id: impl AsRef<str>,
     ) -> Result<bool, PublisherError> {
-        let is_registered_sequencer: bool = self
-            .liveness_contract
-            .isSequencerRegistered(cluster_id.as_ref().to_string(), self.address())
+        self.liveness
+            .isSequencerRegistered(cluster_id.as_ref().to_string(), who)
             .call()
             .await
-            .map_err(PublisherError::IsRegistered)?
-            ._0;
-
-        Ok(is_registered_sequencer)
+            .map_err(PublisherError::IsRegistered)
     }
 
     async fn extract_event_from_pending_transaction<T>(
         &self,
-        pending_transaction: Result<
-            PendingTransactionBuilder<Http<Client>, Ethereum>,
-            contract::Error,
-        >,
+        pending_transaction: Result<PendingTransactionBuilder<Ethereum>, contract::Error>,
     ) -> Result<T, TransactionError>
     where
         T: SolEvent,

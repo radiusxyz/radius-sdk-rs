@@ -1,5 +1,8 @@
 #[derive(Debug)]
 pub enum SignatureError {
+    Unauthorized,
+    RecoverError,
+    InvalidLength(usize),
     UnsupportedChainType(String),
     DeserializeAddress(const_hex::FromHexError),
     DeserializeSignature(const_hex::FromHexError),

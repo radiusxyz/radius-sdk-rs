@@ -13,3 +13,4 @@ tower = { version = "0.4.13", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["full"] }
 trait-variant = "0.1.2"
 url = "2.5"
+thiserror = { workspace = true }
