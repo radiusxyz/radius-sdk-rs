@@ -1,0 +1,21 @@
+[package]
+name = "validation-service"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+
+[dependencies]
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+alloy = { workspace = true, features = ["full", "reqwest", "signer-local"] }
+chrono = { workspace = true }
+futures = { workspace = true }
+rand = { workspace = true }
+signature = { workspace = true }
+
+[features]
+dkg = []
+eigenlayer = []
+symbiotic = []
